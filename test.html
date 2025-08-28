@@ -133,7 +133,7 @@ let sheetName = "",
     allEnrollments = {},
     localMarked = JSON.parse(localStorage.getItem("localMarked")) || [];
 
-const scriptURL = "YOUR_DEPLOYED_APPS_SCRIPT_URL"; // replace with your Apps Script WebApp URL
+const scriptURL = "https://script.google.com/macros/s/AKfycbwkpA1BWvUNZhnJHYUB5s87RjiFJP7tzRp2OL-O1DceBpxLP1digI_ieJxwp3I8yj5c/exec";
 
 // unauthorized check
 if (!coordinator) {
@@ -182,22 +182,18 @@ window.onload = function() {
     const select = document.getElementById("cameraSelect");
     const cameraBlock = document.getElementById("cameraBlock");
 
-    if (videoDevices.length === 0) {
+    if (videoDevices.length <= 1) {
       cameraBlock.style.display = "none";
-      return;
+      startScannerWithDevice(null); // auto start
+    } else {
+      videoDevices.forEach(d => {
+        const opt = document.createElement("option");
+        opt.value = d.deviceId;
+        opt.textContent = d.label || `Camera ${select.length+1}`;
+        select.appendChild(opt);
+      });
+      startScannerWithDevice(videoDevices[0].deviceId);
     }
-
-    // Always show dropdown
-    select.innerHTML = "";
-    videoDevices.forEach((d, idx) => {
-      const opt = document.createElement("option");
-      opt.value = d.deviceId;
-      opt.textContent = d.label || `Camera ${idx + 1}`;
-      select.appendChild(opt);
-    });
-
-    // ✅ Auto-start scanner with the first available camera
-    startScannerWithDevice(videoDevices[0].deviceId);
   });
 };
 
@@ -219,6 +215,7 @@ function loadAllEnrollments(sheet) {
     .then(data => {
       allEnrollments = {};
       data.enrollments.forEach(item => {
+        // build full name from FirstName + MiddleName + LastName
         const fullName = `${item.FirstName || ""} ${item.MiddleName || ""} ${item.LastName || ""}`.trim();
         allEnrollments[item.EnrollmentNo.trim()] = {
           row: item.row,
@@ -233,18 +230,43 @@ function startScannerWithDevice(deviceId) {
   if (!sheetName) return;
   if (Quagga.initialized) { Quagga.stop(); Quagga.initialized = false; }
 
+  let constraints = {};
+  if (deviceId) constraints.deviceId = { exact: deviceId };
+  else constraints.facingMode = { ideal: "environment" };
+
   Quagga.init({
     inputStream: {
       name: "Live",
       type: "LiveStream",
       target: document.querySelector('#scanner'),
-      constraints: { deviceId: { exact: deviceId } }
+      constraints: constraints
     },
     locator: { patchSize: "medium", halfSample: false },
     decoder: { readers: ["code_128_reader"] },
     locate: true
   }, function(err) {
-    if (err) { console.error("Quagga init error:", err); return; }
+    if (err) {
+      console.error("Quagga init error:", err);
+      // fallback to front camera
+      if (!deviceId) {
+        Quagga.init({
+          inputStream: {
+            name: "Live",
+            type: "LiveStream",
+            target: document.querySelector('#scanner'),
+            constraints: { facingMode: "user" }
+          },
+          decoder: { readers: ["code_128_reader"] },
+          locate: true
+        }, function(err2) {
+          if (err2) { console.error("Second init error:", err2); return; }
+          Quagga.initialized = true;
+          Quagga.start();
+          Quagga.onDetected(onDetected);
+        });
+      }
+      return;
+    }
     Quagga.initialized = true;
     Quagga.start();
     Quagga.onDetected(onDetected);
