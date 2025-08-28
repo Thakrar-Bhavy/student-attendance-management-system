@@ -97,7 +97,7 @@ button, select, input[type="file"] {
 <body>
 
 <div class="container">
-<h2>📋  Attendance Panel</h2>
+<h2>📋 Attendance Panel</h2>
 <div id="netStatus">🟢 Online</div>
 <div id="presentCount" class="text-center fw-bold mb-2">Present: 0</div>
 <div id="pendingCount"></div>
@@ -108,7 +108,7 @@ button, select, input[type="file"] {
 </select>
 </div>
 
-<!-- Camera Selector -->
+<!-- Camera selection dropdown -->
 <div class="mb-2">
   <label for="cameraSelect" class="form-label text-white">Select Camera:</label>
   <select id="cameraSelect" class="form-select"></select>
@@ -132,28 +132,12 @@ button, select, input[type="file"] {
 </div>
 
 <script>
-function updatePresentCount() {
-  if (!sheetName) return;
-  fetch(`${scriptURL}?action=getPresentCount&Sheet=${encodeURIComponent(sheetName)}`)
-    .then(res => res.json())
-    .then(data => {
-      document.getElementById("presentCount").textContent = `Present: ${data.count}`;
-    })
-    .catch(err => console.error("Error fetching present count:", err));
-}
-setInterval(updatePresentCount, 1000);
-
-if (!localStorage.getItem("coordinator")) {
-  alert("Unauthorized access. Please login first.");
-  window.location.href = "login.html";
-}
-
 let sheetName = "", coordinator = localStorage.getItem("coordinator");
 let lastScanned = "", pendingQueue = [], allEnrollments = {}, localMarked = JSON.parse(localStorage.getItem("localMarked")) || [];
+let currentDeviceId = null; 
 const scriptURL = "https://script.google.com/macros/s/AKfycbxinxXUzvmw9fTWnY-q4jqa6mFijq3uYuA1hxGBCCF6acZ289WdEgkBBhJ8iJpzfN_u/exec"; 
 
-let currentDeviceId = null; // for selected camera
-
+// --- Online/offline status handling ---
 window.addEventListener('online', () => updateStatus(true));
 window.addEventListener('offline', () => updateStatus(false));
 
@@ -162,12 +146,13 @@ function updateStatus(online) {
   updatePendingCount();
 }
 
-function logout() {
-  localStorage.clear();
+// --- Coordinator authentication check ---
+if (!localStorage.getItem("coordinator")) {
+  alert("Unauthorized access. Please login first.");
   window.location.href = "login.html";
 }
 
-// Load cameras into dropdown
+// --- Load available cameras ---
 async function loadCameras() {
   try {
     const devices = await navigator.mediaDevices.enumerateDevices();
@@ -183,12 +168,21 @@ async function loadCameras() {
     });
 
     if (videoDevices.length > 0) {
-      currentDeviceId = videoDevices[0].deviceId;
-      cameraSelect.value = currentDeviceId;
+      // Restore last used camera if stored
+      const savedCam = localStorage.getItem("selectedCamera");
+      if (savedCam && videoDevices.some(d => d.deviceId === savedCam)) {
+        currentDeviceId = savedCam;
+        cameraSelect.value = savedCam;
+      } else {
+        currentDeviceId = videoDevices[0].deviceId;
+        cameraSelect.value = currentDeviceId;
+      }
     }
 
+    // Restart scanner when user changes camera
     cameraSelect.onchange = () => {
       currentDeviceId = cameraSelect.value;
+      localStorage.setItem("selectedCamera", currentDeviceId);
       restartScanner();
     };
   } catch (err) {
@@ -196,6 +190,7 @@ async function loadCameras() {
   }
 }
 
+// --- Restart scanner with new camera ---
 function restartScanner() {
   if (Quagga.initialized) {
     Quagga.stop();
@@ -204,41 +199,7 @@ function restartScanner() {
   startScanner();
 }
 
-window.onload = function() {
-  loadCameras();
-  fetch(`${scriptURL}?action=getSheets`)
-    .then(res => res.json())
-    .then(data => {
-      const dropdown = document.getElementById("sheetDropdown");
-      data.sheets.forEach(sheet => {
-        const opt = document.createElement("option");
-        opt.value = sheet;
-        opt.textContent = sheet;
-        dropdown.appendChild(opt);
-      });
-    });
-  const saved = localStorage.getItem("pendingAttendance");
-  if (saved) pendingQueue = JSON.parse(saved);
-  updatePendingCount();
-};
-
-document.getElementById("sheetDropdown").addEventListener("change", e => {
-  sheetName = e.target.value;
-  loadAllEnrollments(sheetName);
-  restartScanner();
-});
-
-function loadAllEnrollments(sheet) {
-  fetch(`${scriptURL}?action=getAllEnrollments&Sheet=${encodeURIComponent(sheet)}`)
-    .then(res => res.json())
-    .then(data => {
-      allEnrollments = {};
-      data.enrollments.forEach(item => {
-        allEnrollments[item.EnrollmentNo.trim()] = item.row;
-      });
-    });
-}
-
+// --- Start Quagga scanner with selected camera ---
 function startScanner() {
   if (!sheetName) return;
   if (Quagga.initialized) return;
@@ -259,13 +220,17 @@ function startScanner() {
     locate: true,
     frequency: 10
   }, function(err) {
-    if(err) return console.error(err);
+    if(err) {
+      console.error("Quagga init error:", err);
+      return;
+    }
     Quagga.initialized = true;
     Quagga.start();
     Quagga.onDetected(onDetected);
   });
 }
 
+// --- Detect barcode and mark attendance ---
 function onDetected(result) {
   const code = result.codeResult.code;
   if (code === lastScanned) return;
@@ -274,6 +239,7 @@ function onDetected(result) {
   setTimeout(() => lastScanned="", 400);
 }
 
+// --- Manual input form ---
 function toggleManualForm() {
   const form = document.getElementById("manualForm");
   form.classList.toggle("hidden");
@@ -286,13 +252,14 @@ function submitManual() {
   markPresent(enr, "Manual");
 }
 
+// --- Mark attendance ---
 function markPresent(enrollment, method) {
   const out = document.getElementById("output");
   const resultEl = document.getElementById("manualResult");
 
   if (!(enrollment in allEnrollments)) {
     out.innerHTML = `❌ ${enrollment} not found`;
-    if(resultEl){ resultEl.textContent=``; resultEl.style.color="red"; }
+    if(resultEl){ resultEl.textContent="Enrollment not found"; resultEl.style.color="red";}
     return;
   }
 
@@ -306,22 +273,69 @@ function markPresent(enrollment, method) {
   localStorage.setItem("pendingAttendance", JSON.stringify(pendingQueue));
   updatePendingCount();
   out.innerHTML = `✔ ${enrollment} marked Present (${method})`;
-  if(resultEl){ resultEl.textContent=`✔ ${enrollment} marked Present`; resultEl.style.color="green"; }
+  if(resultEl){ resultEl.textContent=`✔ ${enrollment} marked Present`; resultEl.style.color="green";}
   document.getElementById("successSound").play();
   updatePresentCount();
 }
 
+// --- Present count update ---
+function updatePresentCount() {
+  if (!sheetName) return;
+  fetch(`${scriptURL}?action=getPresentCount&Sheet=${encodeURIComponent(sheetName)}`)
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById("presentCount").textContent = `Present: ${data.count}`;
+    })
+    .catch(err => console.error("Error fetching present count:", err));
+}
+setInterval(updatePresentCount, 1000);
+
+// --- Load sheet names ---
+window.onload = function() {
+  loadCameras();
+  fetch(`${scriptURL}?action=getSheets`)
+    .then(res => res.json())
+    .then(data => {
+      const dropdown = document.getElementById("sheetDropdown");
+      data.sheets.forEach(sheet => {
+        const opt = document.createElement("option");
+        opt.value = sheet;
+        opt.textContent = sheet;
+        dropdown.appendChild(opt);
+      });
+    });
+  const saved = localStorage.getItem("pendingAttendance");
+  if (saved) pendingQueue = JSON.parse(saved);
+  updatePendingCount();
+}
+
+// --- On sheet selection, load enrollments and start scanner ---
+document.getElementById("sheetDropdown").addEventListener("change", e => {
+  sheetName = e.target.value;
+  loadAllEnrollments(sheetName);
+  restartScanner();
+});
+
+function loadAllEnrollments(sheet) {
+  fetch(`${scriptURL}?action=getAllEnrollments&Sheet=${encodeURIComponent(sheet)}`)
+    .then(res => res.json())
+    .then(data => {
+      allEnrollments = {};
+      data.enrollments.forEach(item => {
+        allEnrollments[item.EnrollmentNo.trim()] = item.row;
+      });
+    });
+}
+
+// --- Pending queue handling ---
 function updatePendingCount() {
   document.getElementById("pendingCount").textContent = `Pending to sync: ${pendingQueue.length}`;
 }
 
 setInterval(() => {
-  if (navigator.onLine && pendingQueue.length > 0) {
+  if (navigator.onLine && pendingQueue.length>0) {
     const batch = pendingQueue.splice(0,10);
-    const promises = batch.map(data => 
-      fetch(`${scriptURL}?action=markPresent`, { method:"POST", body:buildFormData(data) })
-        .then(res=>res.json())
-    );
+    const promises = batch.map(data => fetch(`${scriptURL}?action=markPresent`, { method:"POST", body:buildFormData(data) }).then(res=>res.json()));
     Promise.all(promises).then(results => {
       pendingQueue = pendingQueue.concat(batch.filter((_,i)=>results[i].status!=="success"));
       localStorage.setItem("pendingAttendance", JSON.stringify(pendingQueue));
@@ -339,6 +353,7 @@ function buildFormData(obj) {
   return fd;
 }
 
+// --- Download marked students locally ---
 function downloadLocalAttendance() {
   if(localMarked.length === 0) return alert("No marked students to download.");
   const blob = new Blob([localMarked.join("\n")], {type: "text/plain"});
@@ -350,6 +365,7 @@ function downloadLocalAttendance() {
   URL.revokeObjectURL(url);
 }
 
+// --- Confirm before leaving page ---
 window.addEventListener("beforeunload", function(e){
   e.preventDefault();
   e.returnValue = "Are you sure you want to leave? Attendance data might be lost.";
