@@ -36,6 +36,11 @@ h2 {
     overflow: hidden;
     margin-bottom: 15px;
 }
+#scanner video {
+    width: 100% !important;
+    height: auto !important;
+    object-fit: contain !important; /* show full natural camera view */
+}
 #output {
     text-align: center;
     font-weight: bold;
@@ -85,13 +90,13 @@ button, select, input[type="file"] {
 #remarksInput {
   font-size: 14px;
 }
-#presentCount {text-align: center;
+#presentCount {
+    text-align: center;
     background-color: rgb(214, 156, 11);
     font-weight: bold;
     color: rgb(20, 20, 255);
     margin-bottom: 10px;
 }
-
 </style>
 </head>
 <body>
@@ -108,6 +113,12 @@ button, select, input[type="file"] {
 </select>
 </div>
 
+<!-- Camera selection dropdown -->
+<div class="mb-2">
+  <label class="form-label text-white">Select Camera:</label>
+  <select id="cameraSelect" class="form-select"></select>
+</div>
+
 <div id="scanner"></div>
 <div id="output"></div>
 
@@ -115,7 +126,6 @@ button, select, input[type="file"] {
     <button class="btn btn-success btn-sm flex-fill me-1" onclick="toggleManualForm()">Manual Attendance</button>
     <button class="btn btn-primary btn-sm flex-fill ms-1" onclick="downloadLocalAttendance()">Download Marked Students</button>
 </div>
-
 
 <div id="manualForm" class="hidden mb-2">
   <input type="text" id="manualEnroll" class="form-control mb-1" placeholder="Enter Enrollment No">
@@ -127,7 +137,6 @@ button, select, input[type="file"] {
 </div>
 
 <script>
-
 function updatePresentCount() {
   if (!sheetName) return;
   fetch(`${scriptURL}?action=getPresentCount&Sheet=${encodeURIComponent(sheetName)}`)
@@ -137,9 +146,7 @@ function updatePresentCount() {
     })
     .catch(err => console.error("Error fetching present count:", err));
 }
-setInterval(updatePresentCount, 1000); // update every 1 seconds
-
-
+setInterval(updatePresentCount, 1000);
 
 if (!localStorage.getItem("coordinator")) {
   alert("Unauthorized access. Please login first.");
@@ -158,11 +165,6 @@ function updateStatus(online) {
   updatePendingCount();
 }
 
-function logout() {
-  localStorage.clear();
-  window.location.href = "login.html";
-}
-
 window.onload = function() {
   fetch(`${scriptURL}?action=getSheets`)
     .then(res => res.json())
@@ -175,15 +177,34 @@ window.onload = function() {
         dropdown.appendChild(opt);
       });
     });
+
   const saved = localStorage.getItem("pendingAttendance");
   if (saved) pendingQueue = JSON.parse(saved);
   updatePendingCount();
-}
+
+  // Load available cameras
+  navigator.mediaDevices.enumerateDevices().then(devices => {
+    const select = document.getElementById("cameraSelect");
+    devices.filter(d => d.kind === "videoinput").forEach(d => {
+      const opt = document.createElement("option");
+      opt.value = d.deviceId;
+      opt.textContent = d.label || `Camera ${select.length+1}`;
+      select.appendChild(opt);
+    });
+  });
+};
 
 document.getElementById("sheetDropdown").addEventListener("change", e => {
   sheetName = e.target.value;
   loadAllEnrollments(sheetName);
-  startScanner();
+});
+
+document.getElementById("cameraSelect").addEventListener("change", e => {
+  if (Quagga.initialized) {
+    Quagga.stop();
+    Quagga.initialized = false;
+  }
+  startScannerWithDevice(e.target.value);
 });
 
 function loadAllEnrollments(sheet) {
@@ -197,9 +218,8 @@ function loadAllEnrollments(sheet) {
     });
 }
 
-function startScanner() {
+function startScannerWithDevice(deviceId) {
   if (!sheetName) return;
-  if (Quagga.initialized) return;
 
   Quagga.init({
     inputStream: {
@@ -207,9 +227,7 @@ function startScanner() {
       type: "LiveStream",
       target: document.querySelector('#scanner'),
       constraints: {
-        facingMode: { ideal: "environment" },
-        width: { ideal: 640 },
-        height: { ideal: 480 }
+        deviceId: { exact: deviceId } // force specific camera
       }
     },
     locator: { patchSize: "medium", halfSample: false },
