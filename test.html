@@ -29,18 +29,20 @@ h2 {
 }
 #scanner {
     width: 100%;
-    height: 250px;
+    height: 300px; /* Increased height for better viewing */
     border: 3px solid #ffffff;
     border-radius: 12px;
     background: #f1f1f1;
     overflow: hidden;
     margin-bottom: 15px;
+    position: relative;
 }
 #output {
     text-align: center;
     font-weight: bold;
     color: #28a745;
     margin-bottom: 10px;
+    min-height: 40px;
 }
 #manualForm input {
     font-size: 14px;
@@ -48,6 +50,7 @@ h2 {
 #manualResult {
     font-weight: bold;
     margin-top: 5px;
+    min-height: 25px;
 }
 #netStatus {
     text-align: center;
@@ -94,6 +97,61 @@ button, select, input[type="file"] {
 #cameraSelect {
     margin-bottom: 10px;
 }
+#selectedSheetInfo {
+    text-align: center;
+    color: white;
+    font-weight: bold;
+    margin-bottom: 15px;
+    padding: 8px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+}
+#changeSheetBtn {
+    margin-left: 10px;
+    font-size: 12px;
+    padding: 2px 8px;
+}
+.student-info {
+    font-size: 16px;
+    font-weight: bold;
+}
+#remarksSection {
+    margin-top: 10px;
+}
+.btn-remarks {
+    background: #6c757d;
+    color: white;
+    font-size: 12px;
+    padding: 4px 8px;
+}
+.btn-remarks:hover {
+    background: #5a6268;
+    color: white;
+}
+.zoom-controls {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    z-index: 100;
+    background: rgba(0,0,0,0.5);
+    padding: 5px;
+    border-radius: 5px;
+}
+.scanning-help {
+    text-align: center;
+    color: white;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+.help-icon {
+    cursor: pointer;
+    color: #ffcc00;
+    margin-left: 5px;
+}
+.enhanced-scan {
+    border: 3px solid #ffcc00 !important;
+    box-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
+}
 </style>
 </head>
 <body>
@@ -104,10 +162,31 @@ button, select, input[type="file"] {
 <div id="presentCount" class="text-center fw-bold mb-2">Present: 0</div>
 <div id="pendingCount"></div>
 
-<div class="mb-2">
-<select id="sheetDropdown" class="form-select">
-  <option value="" disabled selected>Select Session Sheet</option>
-</select>
+<div class="scanning-help">
+    Tips for dense barcodes: Good lighting • Steady device • 6-12 inch distance
+    <span class="help-icon" onclick="toggleScanningTips()">💡</span>
+</div>
+
+<div id="scanningTips" class="alert alert-info hidden">
+    <strong>How to scan dense 16-digit barcodes:</strong>
+    <ul class="mb-0 mt-1">
+        <li>Ensure bright, even lighting on the barcode</li>
+        <li>Hold device steady about 6-12 inches from the barcode</li>
+        <li>Try tilting the device at a slight angle (15-30 degrees)</li>
+        <li>Use the zoom buttons if the barcode appears too small</li>
+        <li>If scanning fails, use the manual entry option below</li>
+    </ul>
+</div>
+
+<div id="sheetSelection" class="mb-2">
+    <select id="sheetDropdown" class="form-select">
+      <option value="" disabled selected>Select Session Sheet</option>
+    </select>
+</div>
+
+<div id="selectedSheetInfo" class="hidden">
+    <span id="currentSheetName"></span>
+    <button id="changeSheetBtn" class="btn btn-outline-light btn-sm" onclick="showSheetSelection()">Change</button>
 </div>
 
 <div id="cameraSelect" class="hidden mb-2">
@@ -119,23 +198,49 @@ button, select, input[type="file"] {
 <div id="scanner"></div>
 <div id="output"></div>
 
+<div class="mb-2">
+  <button class="btn btn-warning btn-sm w-100" onclick="toggleLongBarcodeEntry()">
+    📝 Enter 16-digit Enrollment Manually
+  </button>
+</div>
+
+<div id="longBarcodeForm" class="hidden mb-2">
+  <input type="text" id="longEnroll" class="form-control mb-1" 
+         placeholder="Enter 16-digit Enrollment No" maxlength="16" pattern="[0-9]{16}">
+  <div class="d-flex justify-content-between">
+    <button class="btn btn-secondary btn-sm flex-fill me-1" onclick="toggleLongBarcodeEntry()">Cancel</button>
+    <button class="btn btn-success btn-sm flex-fill ms-1" onclick="submitLongEnrollment()">Submit</button>
+  </div>
+  <div id="longBarcodeResult"></div>
+</div>
+
+<div id="remarksSection" class="hidden">
+  <textarea id="remarksInput" class="form-control mb-1" placeholder="Enter remarks for this student" rows="2"></textarea>
+  <div class="d-flex justify-content-between">
+    <button class="btn btn-remarks flex-fill me-1" onclick="hideRemarks()">Cancel</button>
+    <button class="btn btn-success-custom flex-fill ms-1" onclick="submitRemarks()">Save Remarks</button>
+  </div>
+</div>
+
 <div class="d-flex justify-content-between mb-2">
     <button class="btn btn-success btn-sm flex-fill me-1" onclick="toggleManualForm()">Manual Attendance</button>
     <button class="btn btn-primary btn-sm flex-fill ms-1" onclick="downloadLocalAttendance()">Download Marked Students</button>
 </div>
 
-
 <div id="manualForm" class="hidden mb-2">
   <input type="text" id="manualEnroll" class="form-control mb-1" placeholder="Enter Enrollment No">
-  <button class="btn btn-success btn-sm w-100" onclick="submitManual()">Submit</button>
+  <div class="d-flex justify-content-between">
+    <button class="btn btn-success-custom btn-sm flex-fill me-1" onclick="submitManual()">Submit</button>
+    <button class="btn btn-remarks btn-sm flex-fill ms-1" onclick="toggleRemarksForManual()">Remarks</button>
+  </div>
   <div id="manualResult"></div>
 </div>
 
 <audio id="successSound" src="https://www.soundjay.com/buttons/sounds/button-3.mp3" preload="auto"></audio>
+<audio id="errorSound" src="https://www.soundjay.com/buttons/sounds/button-10.mp3" preload="auto"></audio>
 </div>
 
 <script>
-
 function updatePresentCount() {
   if (!sheetName) return;
   fetch(`${scriptURL}?action=getPresentCount&Sheet=${encodeURIComponent(sheetName)}`)
@@ -155,6 +260,8 @@ if (!localStorage.getItem("coordinator")) {
 let sheetName = "", coordinator = localStorage.getItem("coordinator");
 let lastScanned = "", pendingQueue = [], allEnrollments = {}, localMarked = JSON.parse(localStorage.getItem("localMarked")) || [];
 let availableCameras = [], currentCameraId = null;
+let currentStudentForRemarks = null; // Track student for remarks
+let currentZoom = 1; // Track zoom level
 const scriptURL = "https://script.google.com/macros/s/AKfycbxinxXUzvmw9fTWnY-q4jqa6mFijq3uYuA1hxGBCCF6acZ289WdEgkBBhJ8iJpzfN_u/exec"; 
 
 window.addEventListener('online', () => updateStatus(true));
@@ -168,6 +275,11 @@ function updateStatus(online) {
 function logout() {
   localStorage.clear();
   window.location.href = "login.html";
+}
+
+function toggleScanningTips() {
+  const tips = document.getElementById("scanningTips");
+  tips.classList.toggle("hidden");
 }
 
 window.onload = function() {
@@ -254,9 +366,28 @@ function getAvailableCameras() {
 
 document.getElementById("sheetDropdown").addEventListener("change", e => {
   sheetName = e.target.value;
+  if (sheetName) {
+    // Hide the dropdown and show the selected sheet info
+    document.getElementById("sheetSelection").classList.add("hidden");
+    document.getElementById("selectedSheetInfo").classList.remove("hidden");
+    document.getElementById("currentSheetName").textContent = `Current Sheet: ${sheetName}`;
+  }
   loadAllEnrollments(sheetName);
   startScanner();
 });
+
+// Function to show sheet selection again
+function showSheetSelection() {
+  document.getElementById("sheetSelection").classList.remove("hidden");
+  document.getElementById("selectedSheetInfo").classList.add("hidden");
+  sheetName = "";
+  if (Quagga.initialized) {
+    Quagga.stop();
+    Quagga.initialized = false;
+  }
+  document.getElementById("scanner").innerHTML = "";
+  document.getElementById("output").textContent = "";
+}
 
 function loadAllEnrollments(sheet) {
   fetch(`${scriptURL}?action=getAllEnrollments&Sheet=${encodeURIComponent(sheet)}`)
@@ -264,81 +395,195 @@ function loadAllEnrollments(sheet) {
     .then(data => {
       allEnrollments = {};
       data.enrollments.forEach(item => {
-        allEnrollments[item.EnrollmentNo.trim()] = item.row;
+        allEnrollments[item.EnrollmentNo.trim()] = {
+          row: item.row,
+          name: item.Name || "Unknown"
+        };
       });
     });
 }
 
+// Improved scanner configuration for dense barcodes
 function startScanner() {
   if (!sheetName) return;
-  if (Quagga.initialized) return;
-  
-  // Camera constraints
-  const constraints = {
-    facingMode: { ideal: "environment" },
-    width: { ideal: 640 },
-    height: { ideal: 480 }
-  };
-  
-  // If a specific camera is selected, use deviceId instead of facingMode
-  if (currentCameraId) {
-    delete constraints.facingMode;
-    constraints.deviceId = { exact: currentCameraId };
+  if (Quagga.initialized) {
+    Quagga.stop();
+    Quagga.initialized = false;
   }
-
-  Quagga.init({
+  
+  // Enhanced configuration for dense barcodes
+  const config = {
     inputStream: {
       name: "Live",
       type: "LiveStream",
       target: document.querySelector('#scanner'),
-      constraints: constraints
-    },
-    locator: { patchSize: "medium", halfSample: false },
-    decoder: { readers: ["code_128_reader"] },
-    locate: true,
-    frequency: 10
-  }, function(err) {
-    if(err) {
-      console.error("Error initializing Quagga:", err);
-      
-      // If initialization fails with selected camera, try with default constraints
-      if (currentCameraId) {
-        console.log("Trying with default camera...");
-        delete constraints.deviceId;
-        constraints.facingMode = { ideal: "environment" };
-        
-        Quagga.init({
-          inputStream: {
-            name: "Live",
-            type: "LiveStream",
-            target: document.querySelector('#scanner'),
-            constraints: constraints
-          },
-          locator: { patchSize: "medium", halfSample: false },
-          decoder: { readers: ["code_128_reader"] },
-          locate: true,
-          frequency: 10
-        }, function(err) {
-          if(err) return console.error("Error initializing Quagga with default camera:", err);
-          Quagga.initialized = true;
-          Quagga.start();
-          Quagga.onDetected(onDetected);
-        });
+      constraints: {
+        width: { min: 1280, ideal: 1920, max: 2560 }, // Higher resolution
+        height: { min: 720, ideal: 1080, max: 1440 },
+        aspectRatio: { min: 1, max: 2 },
+        facingMode: "environment",
+        zoom: currentZoom
       }
+    },
+    locator: {
+      patchSize: "small", // Smaller patch size for dense barcodes
+      halfSample: true
+    },
+    decoder: {
+      readers: ["code_128_reader"],
+      multiple: false
+    },
+    locate: true,
+    frequency: 3, // Lower frequency for better processing
+    numOfWorkers: navigator.hardwareConcurrency || 4, // Use available CPU cores
+    debug: {
+      showCanvas: false,
+      showPatches: false,
+      showFoundPatches: false,
+      showSkeleton: false,
+      showLabels: false,
+      showPatchLabels: false,
+      showRemainingPatchLabels: false,
+      boxFromPatches: {
+        showTransformed: false,
+        showTransformedBox: false,
+        showBB: false
+      }
+    }
+  };
+  
+  // If a specific camera is selected
+  if (currentCameraId) {
+    delete config.inputStream.constraints.facingMode;
+    config.inputStream.constraints.deviceId = { exact: currentCameraId };
+  }
+
+  // Initialize the scanner with enhanced configuration
+  Quagga.init(config, function(err) {
+    if (err) {
+      console.error("Error initializing Quagga with enhanced config:", err);
+      
+      // Fallback to simpler configuration
+      const fallbackConfig = {
+        inputStream: {
+          name: "Live",
+          type: "LiveStream",
+          target: document.querySelector('#scanner'),
+          constraints: {
+            width: 640,
+            height: 480,
+            facingMode: "environment"
+          }
+        },
+        locator: {
+          patchSize: "medium",
+          halfSample: true
+        },
+        decoder: {
+          readers: ["code_128_reader"]
+        },
+        locate: true,
+        frequency: 10
+      };
+      
+      if (currentCameraId) {
+        delete fallbackConfig.inputStream.constraints.facingMode;
+        fallbackConfig.inputStream.constraints.deviceId = { exact: currentCameraId };
+      }
+      
+      Quagga.init(fallbackConfig, function(err) {
+        if (err) {
+          console.error("Error initializing Quagga with fallback config:", err);
+          document.getElementById("output").innerHTML = "❌ Scanner initialization failed";
+          document.getElementById("successSound").play();
+          return;
+        }
+        Quagga.initialized = true;
+        Quagga.start();
+        Quagga.onDetected(onDetected);
+        addZoomControls();
+      });
       return;
     }
+    
     Quagga.initialized = true;
     Quagga.start();
     Quagga.onDetected(onDetected);
+    addZoomControls();
+    
+    // Add visual indicator for enhanced scanning
+    document.getElementById("scanner").classList.add("enhanced-scan");
   });
+}
+
+// Add zoom controls for the camera
+function addZoomControls() {
+  // Remove existing controls if any
+  const existingControls = document.querySelector('.zoom-controls');
+  if (existingControls) {
+    existingControls.remove();
+  }
+  
+  const scannerDiv = document.getElementById('scanner');
+  const zoomControls = document.createElement('div');
+  zoomControls.className = 'zoom-controls';
+  zoomControls.innerHTML = `
+    <button class="btn btn-sm btn-light" onclick="adjustZoom(0.1)">+</button>
+    <button class="btn btn-sm btn-light" onclick="adjustZoom(-0.1)">-</button>
+  `;
+  scannerDiv.appendChild(zoomControls);
+}
+
+function adjustZoom(delta) {
+  currentZoom = Math.max(1, Math.min(3, currentZoom + delta));
+  
+  if (Quagga.initialized) {
+    Quagga.stop();
+    Quagga.initialized = false;
+  }
+  
+  startScanner();
 }
 
 function onDetected(result) {
   const code = result.codeResult.code;
   if (code === lastScanned) return;
   lastScanned = code;
+  
+  // Validate if it's a 16-digit code
+  if (code.length === 16 && /^\d+$/.test(code)) {
+    document.getElementById("output").innerHTML = "🔄 Processing dense barcode...";
+  }
+  
   markPresent(code, "Scanner");
   setTimeout(() => lastScanned="", 400);
+}
+
+function toggleLongBarcodeEntry() {
+  const form = document.getElementById("longBarcodeForm");
+  form.classList.toggle("hidden");
+  document.getElementById("longBarcodeResult").textContent = "";
+  document.getElementById("longEnroll").value = "";
+  
+  // Hide other forms if visible
+  document.getElementById("manualForm").classList.add("hidden");
+  document.getElementById("remarksSection").classList.add("hidden");
+}
+
+function submitLongEnrollment() {
+  const enr = document.getElementById("longEnroll").value.trim();
+  const resultEl = document.getElementById("longBarcodeResult");
+  
+  // Validate 16-digit format
+  if (!/^\d{16}$/.test(enr)) {
+    resultEl.textContent = "Please enter a valid 16-digit enrollment number";
+    resultEl.style.color = "red";
+    document.getElementById("errorSound").play();
+    return;
+  }
+  
+  markPresent(enr, "Manual-16digit");
+  toggleLongBarcodeEntry(); // Close the form after submission
 }
 
 function toggleManualForm() {
@@ -346,11 +591,85 @@ function toggleManualForm() {
   form.classList.toggle("hidden");
   document.getElementById("manualResult").textContent = "";
   document.getElementById("manualEnroll").value = "";
+  hideRemarks(); // Hide remarks section when toggling manual form
 }
 
 function submitManual() {
   const enr = document.getElementById("manualEnroll").value.trim();
   markPresent(enr, "Manual");
+}
+
+// Toggle remarks for manually entered student
+function toggleRemarksForManual() {
+  const enr = document.getElementById("manualEnroll").value.trim();
+  if (!enr) {
+    alert("Please enter an enrollment number first");
+    return;
+  }
+  
+  if (!(enr in allEnrollments)) {
+    alert("Enrollment number not found in the selected sheet");
+    return;
+  }
+  
+  currentStudentForRemarks = enr;
+  document.getElementById("remarksInput").value = "";
+  document.getElementById("remarksSection").classList.remove("hidden");
+}
+
+// Show remarks section for a student
+function showRemarks(enrollment) {
+  currentStudentForRemarks = enrollment;
+  document.getElementById("remarksInput").value = "";
+  document.getElementById("remarksSection").classList.remove("hidden");
+}
+
+// Hide remarks section
+function hideRemarks() {
+  document.getElementById("remarksSection").classList.add("hidden");
+  currentStudentForRemarks = null;
+}
+
+// Submit remarks for the current student
+function submitRemarks() {
+  if (!currentStudentForRemarks) return;
+  
+  const remarks = document.getElementById("remarksInput").value.trim();
+  if (!remarks) {
+    alert("Please enter some remarks");
+    return;
+  }
+  
+  // Add to pending queue
+  const data = { 
+    EnrollmentNo: currentStudentForRemarks, 
+    Name: allEnrollments[currentStudentForRemarks].name,
+    Remarks: remarks,
+    Coordinator: coordinator, 
+    Timestamp: new Date().toLocaleString(), 
+    Sheet: sheetName,
+    Action: "addRemarks"
+  };
+  
+  pendingQueue.push(data);
+  localStorage.setItem("pendingAttendance", JSON.stringify(pendingQueue));
+  updatePendingCount();
+  
+  // Show success message
+  const out = document.getElementById("output");
+  out.innerHTML = `
+    <div class="student-info">
+      ✔ Remarks added for ${currentStudentForRemarks} - ${allEnrollments[currentStudentForRemarks].name}
+    </div>
+  `;
+  
+  document.getElementById("successSound").play();
+  hideRemarks();
+  
+  // Clear the message after 5 seconds
+  setTimeout(() => {
+    out.innerHTML = "";
+  }, 5000);
 }
 
 function markPresent(enrollment, method) {
@@ -360,6 +679,7 @@ function markPresent(enrollment, method) {
   if (!(enrollment in allEnrollments)) {
     out.innerHTML = `❌ ${enrollment} not found`;
     if(resultEl){ resultEl.textContent=``; resultEl.style.color="red";}
+    document.getElementById("errorSound").play();
     return;
   }
 
@@ -368,14 +688,47 @@ function markPresent(enrollment, method) {
     localStorage.setItem("localMarked", JSON.stringify(localMarked));
   }
 
-  const data = { EnrollmentNo: enrollment, Method: method, Coordinator: coordinator, Timestamp: new Date().toLocaleString(), Sheet: sheetName };
+  const studentName = allEnrollments[enrollment].name;
+  const data = { 
+    EnrollmentNo: enrollment, 
+    Name: studentName,
+    Method: method, 
+    Coordinator: coordinator, 
+    Timestamp: new Date().toLocaleString(), 
+    Sheet: sheetName,
+    Action: "markPresent"
+  };
+  
   pendingQueue.push(data);
   localStorage.setItem("pendingAttendance", JSON.stringify(pendingQueue));
   updatePendingCount();
-  out.innerHTML = `✔ ${enrollment} marked Present (${method})`;
-  if(resultEl){ resultEl.textContent=`✔ ${enrollment} marked Present`; resultEl.style.color="green";}
+  
+  // Show student name with enrollment for 5 seconds
+  out.innerHTML = `
+    <div class="student-info">
+      ✔ ${enrollment} - ${studentName} marked Present (${method})
+      <button class="btn btn-remarks ms-2" onclick="showRemarks('${enrollment}')">Remarks</button>
+    </div>
+  `;
+  
+  if(resultEl){ 
+    resultEl.innerHTML = `
+      <div class="student-info">
+        ✔ ${enrollment} - ${studentName} marked Present
+        <button class="btn btn-remarks ms-2" onclick="showRemarks('${enrollment}')">Remarks</button>
+      </div>
+    `; 
+    resultEl.style.color="green";
+  }
+  
   document.getElementById("successSound").play();
   updatePresentCount();
+  
+  // Clear the message after 5 seconds
+  setTimeout(() => {
+    out.innerHTML = "";
+    if(resultEl) resultEl.innerHTML = "";
+  }, 5000);
 }
 
 function updatePendingCount() {
@@ -385,12 +738,21 @@ function updatePendingCount() {
 setInterval(() => {
   if (navigator.onLine && pendingQueue.length>0) {
     const batch = pendingQueue.splice(0,10);
-    const promises = batch.map(data => fetch(`${scriptURL}?action=markPresent`, { method:"POST", body:buildFormData(data) }).then(res=>res.json()));
+    const promises = batch.map(data => {
+      const url = data.Action === "addRemarks" 
+        ? `${scriptURL}?action=addRemarks` 
+        : `${scriptURL}?action=markPresent`;
+      return fetch(url, { method:"POST", body:buildFormData(data) }).then(res=>res.json());
+    });
+    
     Promise.all(promises).then(results => {
       pendingQueue = pendingQueue.concat(batch.filter((_,i)=>results[i].status!=="success"));
       localStorage.setItem("pendingAttendance", JSON.stringify(pendingQueue));
       updatePendingCount();
-    }).catch(()=>{ pendingQueue = batch.concat(pendingQueue); localStorage.setItem("pendingAttendance", JSON.stringify(pendingQueue)); });
+    }).catch(()=>{ 
+      pendingQueue = batch.concat(pendingQueue); 
+      localStorage.setItem("pendingAttendance", JSON.stringify(pendingQueue)); 
+    });
   }
 }, 2000);
 
