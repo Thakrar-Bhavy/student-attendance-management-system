@@ -419,6 +419,13 @@ function toggleManualForm() {
   document.getElementById("manualResult").textContent = "";
   document.getElementById("manualEnroll").value = "";
   hideRemarks(); // Hide remarks section when toggling manual form
+  
+  // Auto-focus on the input field when manual form is shown
+  if (!form.classList.contains("hidden")) {
+    setTimeout(() => {
+      document.getElementById("manualEnroll").focus();
+    }, 100);
+  }
 }
 
 function submitManual() {
@@ -442,6 +449,11 @@ function toggleRemarksForManual() {
   currentStudentForRemarks = enr;
   document.getElementById("remarksInput").value = "";
   document.getElementById("remarksSection").classList.remove("hidden");
+  
+  // Auto-focus on the remarks input field
+  setTimeout(() => {
+    document.getElementById("remarksInput").focus();
+  }, 100);
 }
 
 // Show remarks section for a student
@@ -449,6 +461,11 @@ function showRemarks(enrollment) {
   currentStudentForRemarks = enrollment;
   document.getElementById("remarksInput").value = "";
   document.getElementById("remarksSection").classList.remove("hidden");
+  
+  // Auto-focus on the remarks input field
+  setTimeout(() => {
+    document.getElementById("remarksInput").focus();
+  }, 100);
 }
 
 // Hide remarks section
@@ -597,6 +614,35 @@ function downloadLocalAttendance() {
   a.download = `Marked_Students_${new Date().toISOString().slice(0,10)}.txt`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// Auto-focus on sheet dropdown when page loads
+window.addEventListener("load", function() {
+  setTimeout(() => {
+    const sheetDropdown = document.getElementById("sheetDropdown");
+    if (sheetDropdown) {
+      sheetDropdown.focus();
+    }
+  }, 500);
+});
+
+// Auto-focus on camera dropdown when it appears
+const cameraObserver = new MutationObserver(function(mutations) {
+  mutations.forEach(function(mutation) {
+    if (!mutation.target.classList.contains("hidden")) {
+      setTimeout(() => {
+        const cameraDropdown = document.getElementById("cameraDropdown");
+        if (cameraDropdown) {
+          cameraDropdown.focus();
+        }
+      }, 100);
+    }
+  });
+});
+
+const cameraSelect = document.getElementById("cameraSelect");
+if (cameraSelect) {
+  cameraObserver.observe(cameraSelect, { attributes: true, attributeFilter: ['class'] });
 }
 
 window.addEventListener("beforeunload", function(e){
