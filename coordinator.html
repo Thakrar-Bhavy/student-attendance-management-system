@@ -143,9 +143,9 @@ button, select, input[type="file"] {
     </select>
 </div>
 
-<div id="selectedSheetInfo" class="hidden">
-    <span id="currentSheetName"></span>
-    <button id="changeSheetBtn" class="btn btn-outline-light btn-sm" onclick="document.location.reload()">Change</button>
+<div id="selectedSheetInfo" class="hidden"> <span
+id="currentSheetName"></span> <button id="changeSheetBtn" class="btn
+btn-outline-light btn-sm" onclick="showSheetSelection()">Change</button>
 </div>
 
 <div id="cameraSelect" class="hidden mb-2">
@@ -172,13 +172,21 @@ button, select, input[type="file"] {
 
 
 <div id="manualForm" class="hidden mb-2">
-  <input type="text" id="manualEnroll" class="form-control mb-1" placeholder="Enter Enrollment No">
+  <input type="tel" id="manualEnroll" class="form-control mb-1" placeholder="Enter Enrollment No" 
+         pattern="[0-9]*" inputmode="numeric" oninput="validateEnrollmentInput(this)">
   <div class="d-flex justify-content-between">
     <button class="btn btn-success-custom btn-sm flex-fill me-1" onclick="submitManual()">Submit</button>
     <button class="btn btn-remarks btn-sm flex-fill ms-1" onclick="toggleRemarksForManual()">Remarks</button>
   </div>
   <div id="manualResult"></div>
 </div>
+<script type="text/javascript">
+	// Validate enrollment input to allow only numbers
+function validateEnrollmentInput(input) {
+  // Remove any non-digit characters
+  input.value = input.value.replace(/\D/g, '');
+}
+</script>
 
 <audio id="successSound" src="https://www.soundjay.com/buttons/sounds/button-3.mp3" preload="auto"></audio>
 </div>
@@ -554,15 +562,7 @@ function markPresent(enrollment, method) {
     </div>
   `;
   
-  if(resultEl){ 
-    resultEl.innerHTML = `
-      <div class="student-info">
-        ✔ ${enrollment} - ${studentName} marked Present
-        <button class="btn btn-remarks ms-2" onclick="showRemarks('${enrollment}')">Remarks</button>
-      </div>
-    `; 
-    resultEl.style.color="green";
-  }
+
   
   document.getElementById("successSound").play();
   updatePresentCount();
