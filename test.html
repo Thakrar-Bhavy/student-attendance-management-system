@@ -45,6 +45,17 @@ h2 {
     background: #f1f1f1;
     overflow: hidden;
     margin-bottom: 15px;
+    position: relative;
+}
+#scanner-controls {
+    position: absolute;
+    bottom: 10px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    z-index: 10;
 }
 #output {
     text-align: center;
@@ -152,6 +163,17 @@ footer {
     margin-bottom: 10px;
     text-align: center;
 }
+.focus-indicator {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    z-index: 5;
+}
 </style>
 </head>
 <body>
@@ -187,7 +209,13 @@ footer {
     </select>
   </div>
 
-  <div id="scanner" class="mb-2"></div>
+  <div id="scanner" class="mb-2">
+    <div id="scanner-controls" class="hidden">
+      <button id="refocusBtn" class="btn btn-sm btn-outline-light" onclick="triggerAutoFocus()">Refocus</button>
+      <button id="toggleFlashBtn" class="btn btn-sm btn-outline-light" onclick="toggleFlash()">Flash: Off</button>
+    </div>
+    <div id="focusIndicator" class="focus-indicator hidden">Focusing...</div>
+  </div>
   <div id="output"></div>
 
   <div id="remarksSection" class="hidden">
@@ -250,6 +278,8 @@ let sheetName = "", coordinator = localStorage.getItem("coordinator");
 let lastScanned = "", pendingQueue = [], allEnrollments = {}, localMarked = JSON.parse(localStorage.getItem("localMarked")) || [];
 let availableCameras = [], currentCameraId = null;
 let currentStudentForRemarks = null; // Track student for remarks
+let currentStream = null; // Track current camera stream
+let flashOn = false; // Track flash status
 const scriptURL = "https://script.google.com/macros/s/AKfycbxF12oT2ggSxPd2ZT1R_OLn-Z7z2KjxNmLfZLOcEWWXvMMMdwtp0qAz7KIsg7fSZtV1/exec"; 
 
 window.addEventListener('online', () => updateStatus(true));
@@ -261,6 +291,9 @@ function updateStatus(online) {
 }
 
 function logout() {
+  if (currentStream) {
+    currentStream.getTracks().forEach(track => track.stop());
+  }
   localStorage.clear();
   window.location.href = "login.html";
 }
@@ -316,6 +349,9 @@ function getAvailableCameras() {
             Quagga.stop();
             Quagga.initialized = false;
           }
+          if (currentStream) {
+            currentStream.getTracks().forEach(track => track.stop());
+          }
           if (sheetName) {
             startScanner();
           }
@@ -368,6 +404,10 @@ function showSheetSelection() {
     Quagga.stop();
     Quagga.initialized = false;
   }
+  if (currentStream) {
+    currentStream.getTracks().forEach(track => track.stop());
+    currentStream = null;
+  }
   document.getElementById("scanner").innerHTML = "";
   document.getElementById("output").textContent = "";
 }
@@ -390,64 +430,175 @@ function startScanner() {
   if (!sheetName) return;
   if (Quagga.initialized) return;
   
-  // Camera constraints
+  // Show scanner controls
+  document.getElementById("scanner-controls").classList.remove("hidden");
+  
+  // Camera constraints - prioritize higher resolution
   const constraints = {
-    facingMode: { ideal: "environment" },
-    width: { ideal: 640 },
-    height: { ideal: 480 }
+    width: { min: 1280, ideal: 1920, max: 2560 },
+    height: { min: 720, ideal: 1080, max: 1440 },
+    frameRate: { ideal: 30, max: 60 },
+    focusMode: 'continuous', // Request continuous autofocus
+    advanced: [{ focusMode: 'continuous' }]
   };
   
-  // If a specific camera is selected, use deviceId instead of facingMode
+  // If a specific camera is selected, use deviceId
   if (currentCameraId) {
-    delete constraints.facingMode;
     constraints.deviceId = { exact: currentCameraId };
+  } else {
+    // Prefer rear camera if available
+    constraints.facingMode = { ideal: "environment" };
   }
 
-  Quagga.init({
-    inputStream: {
-      name: "Live",
-      type: "LiveStream",
-      target: document.querySelector('#scanner'),
-      constraints: constraints
-    },
-    locator: { patchSize: "medium", halfSample: false },
-    decoder: { readers: ["code_128_reader"] },
-    locate: true,
-    frequency: 10
-  }, function(err) {
-    if(err) {
-      console.error("Error initializing Quagga:", err);
+  // First get the media stream to check capabilities
+  navigator.mediaDevices.getUserMedia({ video: constraints, audio: false })
+    .then(stream => {
+      currentStream = stream;
+      const videoTrack = stream.getVideoTracks()[0];
+      const capabilities = videoTrack.getCapabilities();
       
-      // If initialization fails with selected camera, try with default constraints
-      if (currentCameraId) {
-        console.log("Trying with default camera...");
-        delete constraints.deviceId;
-        constraints.facingMode = { ideal: "environment" };
-        
-        Quagga.init({
-          inputStream: {
-            name: "Live",
-            type: "LiveStream",
-            target: document.querySelector('#scanner'),
-            constraints: constraints
-          },
-          locator: { patchSize: "medium", halfSample: false },
-          decoder: { readers: ["code_128_reader"] },
-          locate: true,
-          frequency: 10
-        }, function(err) {
-          if(err) return console.error("Error initializing Quagga with default camera:", err);
-          Quagga.initialized = true;
-          Quagga.start();
-          Quagga.onDetected(onDetected);
-        });
+      // Check if manual focus is available
+      if (capabilities.focusDistance) {
+        console.log("Manual focus capabilities available");
       }
-      return;
-    }
-    Quagga.initialized = true;
-    Quagga.start();
-    Quagga.onDetected(onDetected);
-  });
+      
+      // Set up Quagga with the stream
+      Quagga.init({
+        inputStream: {
+          name: "Live",
+          type: "LiveStream",
+          target: document.querySelector('#scanner'),
+          constraints: {
+            deviceId: currentCameraId ? { exact: currentCameraId } : undefined,
+            facingMode: !currentCameraId ? { ideal: "environment" } : undefined
+          }
+        },
+        locator: { patchSize: "medium", halfSample: false },
+        decoder: { readers: ["code_128_reader"] },
+        locate: true,
+        frequency: 10
+      }, function(err) {
+        if(err) {
+          console.error("Error initializing Quagga:", err);
+          
+          // If initialization fails with selected camera, try with default constraints
+          if (currentCameraId) {
+            console.log("Trying with default camera...");
+            delete constraints.deviceId;
+            constraints.facingMode = { ideal: "environment" };
+            
+            Quagga.init({
+              inputStream: {
+                name: "Live",
+                type: "LiveStream",
+                target: document.querySelector('#scanner'),
+                constraints: constraints
+              },
+              locator: { patchSize: "medium", halfSample: false },
+              decoder: { readers: ["code_128_reader"] },
+              locate: true,
+              frequency: 10
+            }, function(err) {
+              if(err) return console.error("Error initializing Quagga with default camera:", err);
+              Quagga.initialized = true;
+              Quagga.start();
+              Quagga.onDetected(onDetected);
+            });
+          }
+          return;
+        }
+        Quagga.initialized = true;
+        Quagga.start();
+        Quagga.onDetected(onDetected);
+      });
+    })
+    .catch(err => {
+      console.error("Error accessing camera:", err);
+      // Fallback to lower resolution if needed
+      constraints.width = { ideal: 640 };
+      constraints.height = { ideal: 480 };
+      
+      navigator.mediaDevices.getUserMedia({ video: constraints, audio: false })
+        .then(stream => {
+          currentStream = stream;
+          Quagga.init({
+            inputStream: {
+              name: "Live",
+              type: "LiveStream",
+              target: document.querySelector('#scanner'),
+              constraints: constraints
+            },
+            locator: { patchSize: "medium", halfSample: false },
+            decoder: { readers: ["code_128_reader"] },
+            locate: true,
+            frequency: 10
+          }, function(err) {
+            if(err) return console.error("Error initializing Quagga with fallback constraints:", err);
+            Quagga.initialized = true;
+            Quagga.start();
+            Quagga.onDetected(onDetected);
+          });
+        })
+        .catch(fallbackErr => {
+          console.error("Could not access camera even with fallback constraints:", fallbackErr);
+          document.getElementById("output").textContent = "Camera access denied. Please check permissions.";
+        });
+    });
+}
+
+// Function to trigger auto focus
+function triggerAutoFocus() {
+  if (!currentStream) return;
+  
+  const videoTrack = currentStream.getVideoTracks()[0];
+  const capabilities = videoTrack.getCapabilities();
+  const settings = videoTrack.getSettings();
+  
+  // Show focusing indicator
+  const indicator = document.getElementById("focusIndicator");
+  indicator.classList.remove("hidden");
+  indicator.textContent = "Focusing...";
+  
+  if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
+    // Try to trigger autofocus by temporarily changing focus mode
+    videoTrack.applyConstraints({
+      advanced: [{ focusMode: 'manual' }, { focusMode: 'continuous' }]
+    }).then(() => {
+      console.log("Refocus triggered");
+      indicator.textContent = "Focused";
+      setTimeout(() => indicator.classList.add("hidden"), 2000);
+    }).catch(err => {
+      console.error("Error triggering focus:", err);
+      indicator.textContent = "Focus failed";
+      setTimeout(() => indicator.classList.add("hidden"), 2000);
+    });
+  } else {
+    console.log("Continuous focus not supported by this camera");
+    indicator.textContent = "Auto focus not supported";
+    setTimeout(() => indicator.classList.add("hidden"), 2000);
+  }
+}
+
+// Function to toggle flash/torch
+function toggleFlash() {
+  if (!currentStream) return;
+  
+  const videoTrack = currentStream.getVideoTracks()[0];
+  const capabilities = videoTrack.getCapabilities();
+  
+  if (capabilities.torch) {
+    flashOn = !flashOn;
+    videoTrack.applyConstraints({
+      advanced: [{ torch: flashOn }]
+    }).then(() => {
+      document.getElementById("toggleFlashBtn").textContent = `Flash: ${flashOn ? 'On' : 'Off'}`;
+    }).catch(err => {
+      console.error("Error toggling flash:", err);
+    });
+  } else {
+    console.log("Flash not supported by this camera");
+    document.getElementById("toggleFlashBtn").textContent = "Flash: Unavailable";
+  }
 }
 
 function onDetected(result) {
@@ -683,8 +834,17 @@ if (cameraSelect) {
 }
 
 window.addEventListener("beforeunload", function(e){
-  e.preventDefault();
-  e.returnValue = "Are you sure you want to leave? Attendance data might be lost.";
+  if (pendingQueue.length > 0) {
+    e.preventDefault();
+    e.returnValue = "Are you sure you want to leave? Attendance data might be lost.";
+  }
+});
+
+// Clean up camera stream when page is unloaded
+window.addEventListener('unload', function() {
+  if (currentStream) {
+    currentStream.getTracks().forEach(track => track.stop());
+  }
 });
 </script>
 
