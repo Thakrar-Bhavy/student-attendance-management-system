@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Coordinator Panel | Attendance Tracker</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet" />
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 <style>
 body {
@@ -20,15 +20,24 @@ body {
     max-width: 700px;
     margin: auto;
 }
+.sticky-panel {
+    position: sticky;
+    top: 0;
+    background: rgba(106,170,255,0.85);
+    z-index: 100;
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    padding: 10px 0 5px 0;
+}
 h2 {
     text-align: center;
     color: #ffffff;
-    margin-top: 15px;
-    margin-bottom: 20px;
+    margin: 0;
+    margin-bottom: 10px;
     text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+    font-size: 2rem;
 }
 #scanner {
-    position: relative;
     width: 100%;
     height: 250px;
     border: 3px solid #ffffff;
@@ -37,49 +46,12 @@ h2 {
     overflow: hidden;
     margin-bottom: 15px;
 }
-#scanner video {
-    width: 100% !important;
-    height: 100% !important;
-    object-fit: cover;
-}
-#scannerOverlay {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  pointer-events: none;
-  z-index: 10;
-}
-.scan-box {
-  position: absolute;
-  top: 50%; left: 50%;
-  width: 60%;
-  height: 40%;
-  border: 3px solid rgba(255, 255, 255, 0.8);
-  border-radius: 12px;
-  transform: translate(-50%, -50%);
-  box-sizing: border-box;
-}
-.scan-line {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  background: linear-gradient(90deg, transparent, #00ff00, transparent);
-  animation: scanMove 2s linear infinite;
-  border-radius: 2px;
-}
-@keyframes scanMove {
-  0% { top: 0; }
-  100% { top: 100%; }
-}
 #output {
     text-align: center;
     font-weight: bold;
     color: #28a745;
     margin-bottom: 10px;
     min-height: 40px;
-    z-index: 20;
-    position: relative;
 }
 #manualForm input {
     font-size: 14px;
@@ -97,10 +69,23 @@ h2 {
 }
 #pendingCount {
     text-align: center;
-    background-color: rgb(214, 156, 11);
+    background-color: #fff3cd;
     font-weight: bold;
-    color: rgb(20, 20, 255);
+    color: #b26a00;
     margin-bottom: 10px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    padding: 6px 0;
+}
+#presentCount {
+    text-align: center;
+    background-color: #fffbe6;
+    font-weight: bold;
+    color: #1a237e;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    padding: 6px 0;
 }
 button, select, input[type="file"] {
     font-size: 14px;
@@ -124,13 +109,6 @@ button, select, input[type="file"] {
 .hidden { display: none; }
 #remarksInput {
   font-size: 14px;
-}
-#presentCount {
-    text-align: center;
-    background-color: rgb(214, 156, 11);
-    font-weight: bold;
-    color: rgb(20, 20, 255);
-    margin-bottom: 10px;
 }
 #cameraSelect {
     margin-bottom: 10px;
@@ -166,88 +144,102 @@ button, select, input[type="file"] {
     background: #5a6268;
     color: white;
 }
-#toggleFreezeBtn {
-  background: #ffc107;
-  color: #212529;
-}
-#toggleFreezeBtn:hover {
-  background: #e0a800;
-  color: #212529;
+footer {
+    color: #fff;
+    font-size: 13px;
+    opacity: 0.7;
+    margin-top: 30px;
+    margin-bottom: 10px;
+    text-align: center;
 }
 </style>
 </head>
 <body>
 
 <div class="container">
-<h2>📋  Attendance Panel</h2>
-<div id="netStatus">🟢 Online</div>
-<div id="presentCount" class="text-center fw-bold mb-2">Present: 0</div>
-<div id="pendingCount"></div>
+  <div class="sticky-panel d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">📋 Attendance Panel</h2>
+  </div>
+  <div class="row mb-2">
+    <div class="col-6">
+      <div id="presentCount" class="fw-bold">Present: 0</div>
+    </div>
+    <div class="col-6">
+      <div id="pendingCount" class="fw-bold"></div>
+    </div>
+  </div>
+  <div id="netStatus" class="mb-2"></div>
 
-<div id="sheetSelection" class="mb-2">
+  <div id="sheetSelection" class="mb-2">
     <select id="sheetDropdown" class="form-select">
       <option value="" disabled selected>Select Session Sheet</option>
     </select>
-</div>
+  </div>
 
-<div id="selectedSheetInfo" class="hidden"> <span
-id="currentSheetName"></span> <button id="changeSheetBtn" class="btn
-btn-outline-light btn-sm" onclick="location.reload()">Change</button>
-</div>
+  <div id="selectedSheetInfo" class="hidden">
+    <span id="currentSheetName"></span>
+    <button id="changeSheetBtn" class="btn btn-outline-light btn-sm" onclick="location.reload()">Change</button>
+  </div>
 
-<div id="cameraSelect" class="hidden mb-2">
-  <select id="cameraDropdown" class="form-select">
-    <option value="" disabled selected>Select Camera</option>
-  </select>
-</div>
+  <div id="cameraSelect" class="hidden mb-2">
+    <select id="cameraDropdown" class="form-select">
+      <option value="" disabled selected>Select Camera</option>
+    </select>
+  </div>
 
-<div id="scanner">
-  <div id="scannerOverlay">
-    <div class="scan-box">
-      <div class="scan-line"></div>
+  <div id="scanner" class="mb-2"></div>
+  <div class="text-center mb-2" style="font-size:13px;color:#555;">
+    If blurry, tap the camera area to refocus (on supported devices).
+  </div>
+  <div id="output"></div>
+
+  <div id="remarksSection" class="hidden">
+    <textarea id="remarksInput" class="form-control mb-1" placeholder="Enter remarks for this student" rows="2"></textarea>
+    <div class="d-flex justify-content-between">
+      <button class="btn btn-remarks flex-fill me-1" onclick="hideRemarks()">Cancel</button>
+      <button class="btn btn-success-custom flex-fill ms-1" onclick="submitRemarks()">Save Remarks</button>
     </div>
   </div>
-</div>
-<div id="output"></div>
 
-<div id="remarksSection" class="hidden">
-  <textarea id="remarksInput" class="form-control mb-1" placeholder="Enter remarks for this student" rows="2"></textarea>
-  <div class="d-flex justify-content-between">
-    <button class="btn btn-remarks flex-fill me-1" onclick="hideRemarks()">Cancel</button>
-    <button class="btn btn-success-custom flex-fill ms-1" onclick="submitRemarks()">Save Remarks</button>
-  </div>
-</div>
-
-<div class="d-flex justify-content-between mb-2">
+  <div class="d-flex justify-content-between mb-2">
     <button class="btn btn-success btn-sm flex-fill me-1" onclick="toggleManualForm()">Manual Attendance</button>
     <button class="btn btn-primary btn-sm flex-fill ms-1" onclick="downloadLocalAttendance()">Download Marked Students</button>
-</div>
-
-<div class="d-flex justify-content-between mb-2">
-    <button id="toggleFreezeBtn" class="btn btn-warning btn-sm flex-fill ms-1">Freeze Mode: Off</button>
-</div>
-
-<div id="manualForm" class="hidden mb-2">
-  <input type="tel" id="manualEnroll" class="form-control mb-1" placeholder="Enter Enrollment No" 
-         pattern="[0-9]*" inputmode="numeric" oninput="validateEnrollmentInput(this)">
-  <div class="d-flex justify-content-between">
-    <button class="btn btn-success-custom btn-sm flex-fill me-1" onclick="submitManual()">Submit</button>
-    <button class="btn btn-remarks btn-sm flex-fill ms-1" onclick="toggleRemarksForManual()">Remarks</button>
   </div>
-  <div id="manualResult"></div>
+
+  <div id="manualForm" class="hidden mb-2">
+    <input type="tel" id="manualEnroll" class="form-control mb-1" placeholder="Enter Enrollment No" 
+           pattern="[0-9]*" inputmode="numeric" oninput="validateEnrollmentInput(this)">
+    <div class="d-flex justify-content-between">
+      <button class="btn btn-success-custom btn-sm flex-fill me-1" onclick="submitManual()">Submit</button>
+      <button class="btn btn-remarks btn-sm flex-fill ms-1" onclick="toggleRemarksForManual()">Remarks</button>
+    </div>
+    <div id="manualResult"></div>
+  </div>
+  <audio id="successSound" src="https://www.soundjay.com/buttons/sounds/button-3.mp3" preload="auto"></audio>
+  <footer>
+    &copy; 2025 Student Attendance Management System Devlop By Bhavy
+  </footer>
 </div>
+
 <script type="text/javascript">
-	// Validate enrollment input to allow only numbers
+// Validate enrollment input to allow only numbers
 function validateEnrollmentInput(input) {
-  // Remove any non-digit characters
   input.value = input.value.replace(/\D/g, '');
 }
 </script>
 
-<audio id="successSound" src="https://www.soundjay.com/buttons/sounds/button-3.mp3" preload="auto"></audio>
-</div>
-
 <script>
+function updatePresentCount() {
+  if (!sheetName) return;
+  fetch(`${scriptURL}?action=getPresentCount&Sheet=${encodeURIComponent(sheetName)}`)
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById("presentCount").textContent = `Present: ${data.count}`;
+    })
+    .catch(err => console.error("Error fetching present count:", err));
+}
+setInterval(updatePresentCount, 1000); // update every 1 seconds
+
 if (!localStorage.getItem("coordinator")) {
   alert("Unauthorized access. Please login first.");
   window.location.href = "login.html";
@@ -259,11 +251,6 @@ let availableCameras = [], currentCameraId = null;
 let currentStudentForRemarks = null; // Track student for remarks
 const scriptURL = "https://script.google.com/macros/s/AKfycbxF12oT2ggSxPd2ZT1R_OLn-Z7z2KjxNmLfZLOcEWWXvMMMdwtp0qAz7KIsg7fSZtV1/exec"; 
 
-// Freeze mode variables
-let freezeMode = false;
-let freezeActive = false;
-let frozenCode = null;
-
 window.addEventListener('online', () => updateStatus(true));
 window.addEventListener('offline', () => updateStatus(false));
 
@@ -272,10 +259,6 @@ function updateStatus(online) {
   updatePendingCount();
 }
 
-function logout() {
-  localStorage.clear();
-  window.location.href = "login.html";
-}
 
 window.onload = function() {
   fetch(`${scriptURL}?action=getSheets`)
@@ -296,17 +279,6 @@ window.onload = function() {
   // Get available cameras
   getAvailableCameras();
 }
-
-function updatePresentCount() {
-  if (!sheetName) return;
-  fetch(`${scriptURL}?action=getPresentCount&Sheet=${encodeURIComponent(sheetName)}`)
-    .then(res => res.json())
-    .then(data => {
-      document.getElementById("presentCount").textContent = `Present: ${data.count}`;
-    })
-    .catch(err => console.error("Error fetching present count:", err));
-}
-setInterval(updatePresentCount, 1000); // update every 1 seconds
 
 // Function to get available cameras
 function getAvailableCameras() {
@@ -412,14 +384,19 @@ function loadAllEnrollments(sheet) {
 function startScanner() {
   if (!sheetName) return;
   if (Quagga.initialized) return;
-  
-  // Camera constraints
+
+  // High resolution and focus constraints
   const constraints = {
-    facingMode: { ideal: "environment" },
-    width: { ideal: 640 },
-    height: { ideal: 480 }
+    width: { ideal: 1920 },
+    height: { ideal: 1080 },
+    aspectRatio: { ideal: 16/9 },
+    advanced: [
+      { focusMode: "continuous" }, // Try to keep focus
+      { focusMode: "auto" }
+    ],
+    facingMode: { ideal: "environment" }
   };
-  
+
   // If a specific camera is selected, use deviceId instead of facingMode
   if (currentCameraId) {
     delete constraints.facingMode;
@@ -440,13 +417,13 @@ function startScanner() {
   }, function(err) {
     if(err) {
       console.error("Error initializing Quagga:", err);
-      
+
       // If initialization fails with selected camera, try with default constraints
       if (currentCameraId) {
         console.log("Trying with default camera...");
         delete constraints.deviceId;
         constraints.facingMode = { ideal: "environment" };
-        
+
         Quagga.init({
           inputStream: {
             name: "Live",
@@ -463,8 +440,6 @@ function startScanner() {
           Quagga.initialized = true;
           Quagga.start();
           Quagga.onDetected(onDetected);
-          trySetContinuousFocus();
-          setupManualFocusOnClick();
         });
       }
       return;
@@ -472,108 +447,29 @@ function startScanner() {
     Quagga.initialized = true;
     Quagga.start();
     Quagga.onDetected(onDetected);
-    trySetContinuousFocus();
-    setupManualFocusOnClick();
+
+    // Add tap-to-focus for mobile devices (if supported)
+    const scannerDiv = document.getElementById('scanner');
+    scannerDiv.title = "Tip: Tap here to refocus camera (if supported)";
+    scannerDiv.onclick = function() {
+      const video = scannerDiv.querySelector('video');
+      if (video && video.srcObject) {
+        const track = video.srcObject.getVideoTracks()[0];
+        if (track && typeof track.applyConstraints === "function") {
+          track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
+        }
+      }
+    };
   });
-}
-
-// Try to set continuous focus mode if supported
-function trySetContinuousFocus() {
-  const track = Quagga.cameraAccess.getActiveTrack();
-  if (track) {
-    const capabilities = track.getCapabilities();
-    if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
-      track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] })
-        .catch(err => console.warn("Could not set continuous focus:", err));
-    }
-  }
-}
-
-// Setup manual focus toggle on video click
-function setupManualFocusOnClick() {
-  const video = document.querySelector('#scanner video');
-  if (video) {
-    video.style.cursor = "pointer";
-    video.addEventListener('click', () => {
-      const track = Quagga.cameraAccess.getActiveTrack();
-      if (!track) return alert("Camera track not available");
-
-      const capabilities = track.getCapabilities();
-      if (!capabilities.focusMode) {
-        return alert("Focus control not supported by this camera");
-      }
-
-      const settings = track.getSettings();
-      const currentFocusMode = settings.focusMode || 'continuous';
-
-      let newFocusMode = 'manual';
-      if (currentFocusMode === 'manual') {
-        newFocusMode = 'continuous';
-      }
-
-      track.applyConstraints({
-        advanced: [{ focusMode: newFocusMode }]
-      }).then(() => {
-        alert(`Focus mode set to ${newFocusMode}`);
-      }).catch(err => {
-        console.error("Focus mode change error:", err);
-        alert("Failed to change focus mode");
-      });
-    }, { once: true }); // Attach only once to avoid multiple alerts
-  }
 }
 
 function onDetected(result) {
   const code = result.codeResult.code;
   if (code === lastScanned) return;
   lastScanned = code;
-
-  if (freezeMode) {
-    if (freezeActive) return; // Already frozen, ignore new detections
-    freezeActive = true;
-    frozenCode = code;
-    Quagga.pause(); // Pause scanning
-
-    // Show detected code with confirm/cancel buttons
-    document.getElementById("output").innerHTML = `
-      <div class="student-info">
-        Detected: ${code} 
-        <button class="btn btn-success btn-sm ms-2" onclick="confirmFreezeMark()">Mark Present</button>
-        <button class="btn btn-danger btn-sm ms-2" onclick="cancelFreeze()">Cancel</button>
-      </div>
-    `;
-  } else {
-    markPresent(code, "Scanner");
-    setTimeout(() => lastScanned = "", 400);
-  }
+  markPresent(code, "Scanner");
+  setTimeout(() => lastScanned="", 400);
 }
-
-function confirmFreezeMark() {
-  if (!frozenCode) return;
-  markPresent(frozenCode, "Scanner");
-  frozenCode = null;
-  freezeActive = false;
-  document.getElementById("output").textContent = "";
-  Quagga.start();
-}
-
-function cancelFreeze() {
-  frozenCode = null;
-  freezeActive = false;
-  document.getElementById("output").textContent = "";
-  Quagga.start();
-}
-
-document.getElementById("toggleFreezeBtn").addEventListener("click", () => {
-  freezeMode = !freezeMode;
-  freezeActive = false;
-  frozenCode = null;
-  document.getElementById("toggleFreezeBtn").textContent = `Freeze Mode: ${freezeMode ? "On" : "Off"}`;
-  document.getElementById("output").textContent = "";
-  if (freezeMode && Quagga.initialized) {
-    Quagga.start();
-  }
-});
 
 function toggleManualForm() {
   const form = document.getElementById("manualForm");
@@ -799,7 +695,7 @@ if (cameraSelect) {
 
 window.addEventListener("beforeunload", function(e){
   e.preventDefault();
-  e.returnValue = "Are you sure you want to leave? Attendance data might be lost.";
+  e.returnValue = '';
 });
 </script>
 
