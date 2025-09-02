@@ -188,9 +188,6 @@ footer {
   </div>
 
   <div id="scanner" class="mb-2"></div>
-  <div class="text-center mb-2" style="font-size:13px;color:#555;">
-    If blurry, tap the camera area to refocus (on supported devices).
-  </div>
   <div id="output"></div>
 
   <div id="remarksSection" class="hidden">
@@ -217,7 +214,7 @@ footer {
   </div>
   <audio id="successSound" src="https://www.soundjay.com/buttons/sounds/button-3.mp3" preload="auto"></audio>
   <footer>
-    &copy; 2025 Student Attendance Management System Devlop By Bhavy
+    &copy; 2025 Student Attendance Management System
   </footer>
 </div>
 
@@ -258,7 +255,6 @@ function updateStatus(online) {
   document.getElementById("netStatus").textContent = online ? "🟢 Online" : "🔴 Offline";
   updatePendingCount();
 }
-
 
 window.onload = function() {
   fetch(`${scriptURL}?action=getSheets`)
@@ -384,19 +380,14 @@ function loadAllEnrollments(sheet) {
 function startScanner() {
   if (!sheetName) return;
   if (Quagga.initialized) return;
-
-  // High resolution and focus constraints
+  
+  // Camera constraints
   const constraints = {
-    width: { ideal: 1280 },
-    height: { ideal: 720 },
-    aspectRatio: { ideal: 16/9 },
-    advanced: [
-      { focusMode: "continuous" }, // Try to keep focus
-      { focusMode: "auto" }
-    ],
-    facingMode: { ideal: "environment" }
+    facingMode: { ideal: "environment" },
+    width: { ideal: 640 },
+    height: { ideal: 480 }
   };
-
+  
   // If a specific camera is selected, use deviceId instead of facingMode
   if (currentCameraId) {
     delete constraints.facingMode;
@@ -417,13 +408,13 @@ function startScanner() {
   }, function(err) {
     if(err) {
       console.error("Error initializing Quagga:", err);
-
+      
       // If initialization fails with selected camera, try with default constraints
       if (currentCameraId) {
         console.log("Trying with default camera...");
         delete constraints.deviceId;
         constraints.facingMode = { ideal: "environment" };
-
+        
         Quagga.init({
           inputStream: {
             name: "Live",
@@ -447,19 +438,6 @@ function startScanner() {
     Quagga.initialized = true;
     Quagga.start();
     Quagga.onDetected(onDetected);
-
-    // Add tap-to-focus for mobile devices (if supported)
-    const scannerDiv = document.getElementById('scanner');
-    scannerDiv.title = "Tip: Tap here to refocus camera (if supported)";
-    scannerDiv.onclick = function() {
-      const video = scannerDiv.querySelector('video');
-      if (video && video.srcObject) {
-        const track = video.srcObject.getVideoTracks()[0];
-        if (track && typeof track.applyConstraints === "function") {
-          track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
-        }
-      }
-    };
   });
 }
 
@@ -695,7 +673,7 @@ if (cameraSelect) {
 
 window.addEventListener("beforeunload", function(e){
   e.preventDefault();
-  e.returnValue = '';
+  e.returnValue = "Are you sure you want to leave? Attendance data might be lost.";
 });
 </script>
 
