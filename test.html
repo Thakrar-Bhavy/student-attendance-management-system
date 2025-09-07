@@ -30,7 +30,7 @@
     }
     h2 {
       margin-bottom: 16px;
-      color: #25fc30;
+      color: #2575FC;
     }
     input {
       width: 100%;
@@ -108,7 +108,7 @@
           <div style="display:flex;justify-content:center;align-items:center;height:100vh;text-align:center;font-family:sans-serif;padding:20px;">
             <div>
               <h2>⚠ Mobile Only</h2>
-              Please scan the QR code and open it on your phone.</p>
+              Please scan the QR code and open it on your phone.
             </div>
           </div>`;
       }
@@ -116,59 +116,78 @@
     blockNonMobile();
 
     // 🌍 Backend URL
-    const API_URL = "https://script.google.com/macros/s/AKfycbyLrHDXUZ_LuW7Q_3G8sDwKwos7ss5roxguVs5PGzoDk_d4SX146t_ZiN67027DJZYm/exec"; // replace with deployed Apps Script Web App URL
+    const API_URL = "https://script.google.com/macros/s/AKfycbyb_JsC7JEuyo51f2jTVrFSNEJhzGldkjNZRKbUaBOkDGYu56-qKW9z0XH8c8xAtTek/exec"; // replace with your deployed Apps Script Web App URL
 
     // Local state
-    let studentVerified = false;
     let enrollmentNo = "";
     let sessionId = "";
     let pin = "";
 
-async function verifyStudent() {
-  sessionId = document.getElementById("sessionId").value.trim();
-  pin = document.getElementById("pin").value.trim();
-  enrollmentNo = document.getElementById("enrollment").value.trim();
+    async function verifyStudent() {
+      sessionId = document.getElementById("sessionId").value.trim();
+      pin = document.getElementById("pin").value.trim();
+      enrollmentNo = document.getElementById("enrollment").value.trim();
 
-  if(!sessionId || !pin || !enrollmentNo){
-    document.getElementById("verifyMessage").innerText = "⚠ Please fill all fields.";
-    return;
-  }
+      if(!sessionId || !pin || !enrollmentNo){
+        document.getElementById("verifyMessage").innerText = "⚠ Please fill all fields.";
+        return;
+      }
 
-  try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify({
-        action: "markAttendance",
-        sessionId: sessionId,
-        pin: pin,
-        enrollment: enrollmentNo,
-        deviceToken: localStorage.getItem("deviceToken") || (localStorage.setItem("deviceToken", crypto.randomUUID()), localStorage.getItem("deviceToken")),
-        coords: null
-      })
-    });
-    const data = await res.json();
-    
-    if(data.status === "success" || data.status === "already_marked"){
-      studentVerified = true;
-      document.getElementById("verifySection").classList.add("hidden");
+      // 🌍 Get location
+      if (!navigator.geolocation) {
+        document.getElementById("verifyMessage").innerText = "⚠ GPS not supported.";
+        return;
+      }
 
-      // ✅ Always show name & phone
-      document.getElementById("studentName").innerText = "✅ Enrollment: " + enrollmentNo;
-      document.getElementById("studentPhone").innerText = "Mobile: " + (data.mobile || "Not Available");
+      document.getElementById("verifyMessage").innerText = "⏳ Getting your location...";
 
-      document.getElementById("studentDetails").classList.remove("hidden");
-    } else {
-      document.getElementById("verifyMessage").innerText = "❌ " + data.message;
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        const coords = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+
+        try {
+          const res = await fetch(API_URL, {
+            method: "POST",
+            body: JSON.stringify({
+              action: "markAttendance",
+              sessionId: sessionId,
+              pin: pin,
+              enrollment: enrollmentNo,
+              deviceToken: localStorage.getItem("deviceToken") || (localStorage.setItem("deviceToken", crypto.randomUUID()), localStorage.getItem("deviceToken")),
+              coords: coords
+            })
+          });
+          const data = await res.json();
+
+          if(data.status === "success" || data.status === "already_marked"){
+            document.getElementById("verifySection").classList.add("hidden");
+            document.getElementById("studentName").innerText = "✅ Enrollment: " + enrollmentNo;
+            document.getElementById("studentPhone").innerText = "Mobile: " + (data.mobile || "Not Available");
+            document.getElementById("studentDetails").classList.remove("hidden");
+          } 
+          else if (data.status === "outside") {
+            document.getElementById("verifyMessage").innerText = "❌ You are outside the session location.";
+          }
+          else if (data.status === "closed") {
+            document.getElementById("verifyMessage").innerText = "❌ Session closed. Meet coordinator.";
+          }
+          else if (data.status === "banned") {
+            document.getElementById("verifyMessage").innerText = "🚫 Device blocked. Proxy attempt detected.";
+          }
+          else {
+            document.getElementById("verifyMessage").innerText = "❌ " + data.message;
+          }
+        } catch(err) {
+          document.getElementById("verifyMessage").innerText = "⚠ Error verifying. Check internet and retry.";
+        }
+      }, (error) => {
+        document.getElementById("verifyMessage").innerText = "⚠ Location required. Please allow GPS.";
+      }, { enableHighAccuracy: true, timeout: 10000 });
     }
-  } catch(err) {
-    document.getElementById("verifyMessage").innerText = "Error verifying. Please retry.";
-  }
-}
 
-
-    async function markPresent() {
-      document.getElementById("markMessage").innerText = "⏳ Marking attendance...";
-      // Already marked at verify stage
+    function markPresent() {
       document.getElementById("markMessage").innerText = "✅ Attendance recorded.";
     }
   </script>
