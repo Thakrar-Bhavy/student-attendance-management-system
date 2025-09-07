@@ -1,279 +1,229 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta charset="UTF-8">
   <title>Student Attendance</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body{font-family:Arial,Helvetica,sans-serif;background:#eef2f7;margin:0;padding:0}
-    header{background:#006699;color:#fff;padding:14px;text-align:center;font-size:20px}
-    .container{max-width:960px;margin:18px auto;background:#fff;padding:18px;border-radius:12px;box-shadow:0 4px 10px rgba(0,0,0,0.08)}
-    h2{color:#006699}
-    input,button,select{padding:10px;margin:6px 0;border-radius:8px;border:1px solid #ccc;width:100%;box-sizing:border-box}
-    .row{display:flex;gap:10px}
-    .col{flex:1}
-    button{background:#006699;color:#fff;border:none;cursor:pointer;font-weight:700}
-    button:hover{background:#004466}
-    .message{margin-top:8px;font-weight:600}
-    .error{color:#dc3545}
-    .success{color:#28a745}
-    .info{color:#17a2b8}
-    .small{font-size:14px}
-    .center{text-align:center}
-    .hidden{display:none}
-    .mobile-only{font-style:italic;color:#666}
-    .device-ban{color:#a00;font-weight:700}
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f7fa;
+      color: #333;
+    }
+    header {
+      background: #006699;
+      color: white;
+      padding: 15px;
+      text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+    }
+    .container {
+      max-width: 480px;
+      margin: 20px auto;
+      padding: 20px;
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    h2 {
+      color: #006699;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    input, button {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    button {
+      background: #006699;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      border: none;
+    }
+    button:hover {
+      background: #004466;
+    }
+    .message {
+      margin-top: 10px;
+      font-weight: bold;
+      text-align: center;
+    }
+    .success { color: #28a745; }
+    .error { color: #dc3545; }
+    .warning { color: #ff9800; }
+    .student-info {
+      margin: 15px 0;
+      padding: 12px;
+      background: #eef9ff;
+      border-left: 4px solid #006699;
+      border-radius: 8px;
+    }
+    @media(min-width: 600px) {
+      body::before {
+        content: "⚠️ Please use a mobile device.";
+        display: block;
+        text-align: center;
+        margin-top: 50px;
+        font-size: 18px;
+        color: red;
+      }
+      .container { display: none; }
+    }
   </style>
 </head>
 <body>
 <header>Student Attendance</header>
-<div class="container" id="app">
-  <div id="desktopBlock" class="hidden">
-    <h2>Mobile Only</h2>
-    <p>This attendance page is only available on mobile devices. Please open it on your phone.</p>
+<div class="container">
+  <h2>Mark Your Attendance</h2>
+  <div class="form-group">
+    <input type="text" id="sessionId" placeholder="Session ID">
   </div>
-
-  <div id="mainForm">
-    <h2>Mark Attendance</h2>
-    <p class="mobile-only">Open this page from your phone. Use the QR code provided by your coordinator to open the session link.</p>
-
-    <div class="form-group">
-      <input id="sessionId" placeholder="Session ID (from QR)" />
-    </div>
-    <div class="form-group">
-      <input id="sessionPin" placeholder="Session PIN" />
-    </div>
-    <div class="form-group">
-      <input id="enrollment" placeholder="Enrollment No" autocomplete="off" />
-    </div>
-
-    <div class="row">
-      <div class="col">
-        <button id="verifyBtn">🔎 Verify</button>
-      </div>
-      <div class="col">
-        <button id="markBtn" disabled>✅ Mark Present</button>
-      </div>
-    </div>
-
-    <div id="status" class="message"></div>
-
-    <div id="studentCard" class="hidden" style="margin-top:12px;padding:12px;border-radius:10px;background:#f7fbff;border:1px solid #e6f0fa">
-      <div><strong id="stuName"></strong></div>
-      <div class="small">Mobile: <span id="stuMobile"></span></div>
-      <div class="small">Enrollment: <span id="stuEnroll"></span></div>
-      <div style="margin-top:8px">
-        <small id="locationNote" class="small info">Location will be checked before marking.</small>
-      </div>
-    </div>
-
-    <div style="margin-top:16px">
-      <button id="showQueue">⬆️ Pending Queue (<span id="queueCount">0</span>)</button>
-    </div>
-
-    <div id="queuePanel" class="hidden" style="margin-top:12px">
-      <h3>Pending Submissions</h3>
-      <ul id="queueList"></ul>
-      <button id="sendQueueBtn">Try Send Now</button>
-    </div>
-
-    <div id="banMessage" class="device-ban hidden" style="margin-top:12px">This device is banned for this session due to repeated proxy attempts. Contact the coordinator.</div>
+  <div class="form-group">
+    <input type="password" id="sessionPin" placeholder="Session PIN">
   </div>
+  <div class="form-group">
+    <input type="text" id="enrollment" placeholder="Enrollment Number">
+  </div>
+  <button onclick="verifyStudent()">Verify</button>
+
+  <div id="studentInfo" class="student-info" style="display:none;"></div>
+  <button id="markBtn" style="display:none;" onclick="markAttendance()">✅ Mark Present</button>
+
+  <div id="statusMsg" class="message"></div>
 </div>
 
 <script>
-// CHANGE THIS TO YOUR APPS SCRIPT WEB APP URL (same as admin page)
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx_g8dpWKldk8TUxeUzj2kJeF8NVHLjE89dnametJrCBsLnzdBA7PmsHxKJnZH-vEak/exec";
+const SCRIPT_URL = "YOUR_APPS_SCRIPT_EXEC_URL"; // Replace with your deployed Apps Script exec URL
 
-// Utilities
-function el(id){return document.getElementById(id)}
-function show(elm){elm.classList.remove('hidden')}
-function hide(elm){elm.classList.add('hidden')}
-
-// Mobile-only enforcement
-function isMobile(){
-  const ua = navigator.userAgent || navigator.vendor || window.opera;
-  return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|Mobile/i.test(ua) || (screen.width <= 800 && screen.height <= 1200);
-}
-if(!isMobile()){
-  hide(el('mainForm'));
-  show(el('desktopBlock'));
+// Device token (unique per phone)
+let deviceToken = localStorage.getItem("deviceToken");
+if(!deviceToken){
+  deviceToken = "dev_" + Math.random().toString(36).substr(2,9) + "_" + Date.now();
+  localStorage.setItem("deviceToken", deviceToken);
 }
 
-// Device token for proxy prevention
-function getDeviceToken(){
-  let t = localStorage.getItem('deviceToken');
-  if(!t){ t = 'dt_' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('deviceToken', t); }
-  return t;
-}
-const DEVICE_TOKEN = getDeviceToken();
+async function verifyStudent(){
+  const sessionId = document.getElementById("sessionId").value.trim();
+  const pin = document.getElementById("sessionPin").value.trim();
+  const enrollment = document.getElementById("enrollment").value.trim();
+  if(!sessionId || !pin || !enrollment){
+    showMsg("Please fill all fields","error");
+    return;
+  }
 
-// Queue handling for offline/retry
-function getQueue(){
-  try{ return JSON.parse(localStorage.getItem('attendanceQueue')||'[]') }catch(e){return []}
-}
-function saveQueue(q){ localStorage.setItem('attendanceQueue', JSON.stringify(q)); updateQueueUI(); }
-function pushToQueue(item){ const q=getQueue(); q.push(item); saveQueue(q); }
-function popFromQueue(){ const q=getQueue(); const it=q.shift(); saveQueue(q); return it; }
-function updateQueueUI(){ const q=getQueue(); el('queueCount').innerText=q.length; const list=el('queueList'); list.innerHTML=''; q.forEach((it,idx)=>{ const li=document.createElement('li'); li.innerText=`${it.enrollment} | ${it.sessionId} | tries:${it.tries||0}`; list.appendChild(li); }); }
-
-// Show queue panel toggle
-el('showQueue').addEventListener('click', ()=>{ const panel=el('queuePanel'); panel.classList.toggle('hidden'); updateQueueUI(); });
-
-// Try sending queue periodically
-async function sendQueueOnce(){ const q=getQueue(); if(q.length===0) return; const item=q[0]; try{ const ok = await sendMarkRequest(item, true); if(ok){ q.shift(); saveQueue(q); updateQueueUI(); } else { // increase tries and delay
-    q[0].tries = (q[0].tries||0) + 1; if(q[0].tries >= 3){ // show slow internet message
-      el('status').innerText = 'Internet slow, trying...'; el('status').className='message info'; }
-    saveQueue(q);
-  }}catch(e){ console.warn('Queue send failed',e); }
-}
-setInterval(sendQueueOnce, 8000);
-
-// Haversine distance (meters)
-function distanceMeters(lat1,lon1,lat2,lon2){
-  function toRad(v){return v*Math.PI/180}
-  const R=6371000; const dLat=toRad(lat2-lat1); const dLon=toRad(lon2-lon1);
-  const a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)*Math.sin(dLon/2);
-  const c=2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); return R*c;
-}
-
-// Basic DOM refs
-const verifyBtn = el('verifyBtn');
-const markBtn = el('markBtn');
-const status = el('status');
-const studentCard = el('studentCard');
-
-let currentSession = null; // will hold session metadata from server
-let currentStudent = null; // student info from master sheet
-
-// Verify enrollment & session
-verifyBtn.addEventListener('click', async ()=>{
-  const sessionId = el('sessionId').value.trim();
-  const pin = el('sessionPin').value.trim();
-  const enrollment = el('enrollment').value.trim();
-  if(!sessionId || !pin || !enrollment) return alert('Enter Session ID, PIN and Enrollment');
-
-  // Check device ban local
-  const banKey = `ban_${sessionId}_${DEVICE_TOKEN}`;
-  if(localStorage.getItem(banKey)){ show(el('banMessage')); return; }
-
-  status.innerText = 'Verifying...'; status.className='message info';
-  try{
-    // call apps script to get session info and student row
-    const res = await fetch(`${SCRIPT_URL}?action=verifyStudent&sessionId=${encodeURIComponent(sessionId)}&pin=${encodeURIComponent(pin)}&enrollment=${encodeURIComponent(enrollment)}&deviceToken=${encodeURIComponent(DEVICE_TOKEN)}`);
-    const data = await res.json();
-    if(data.status === 'ok'){
-      currentSession = data.session; // {start,end,lat,lng,radius,closed:boolean}
-      currentStudent = data.student; // {EnrollmentNo,FirstName,Mobile,...}
-      el('stuName').innerText = (currentStudent.FirstName||'') + ' ' + (currentStudent.LastName||'');
-      el('stuMobile').innerText = currentStudent.Mobile || '-';
-      el('stuEnroll').innerText = currentStudent.EnrollmentNo || enrollment;
-      show(studentCard);
-      status.innerText = 'Verified. You can mark present.'; status.className='message success';
-      markBtn.disabled = false;
-      // If server indicates device banned
-      if(data.banned){ localStorage.setItem(banKey,'1'); show(el('banMessage')); }
-    } else if(data.status === 'closed'){
-      status.innerText = 'Session closed, meet coordinator.'; status.className='message error';
-    } else if(data.status === 'ban'){ localStorage.setItem(banKey,'1'); show(el('banMessage')); }
-    else { status.innerText = data.message || 'Verification failed'; status.className='message error'; }
-  }catch(err){ console.error(err); status.innerText = 'Unable to verify right now. You can try again or mark — it will be queued if offline.'; status.className='message error'; }
-});
-
-// Send mark request to server. If "fromQueue" true, do not push again.
-async function sendMarkRequest(payload, fromQueue=false){
-  // payload expected: {sessionId,enrollment,deviceToken,student,lat,lng,method,tries}
-  try{
-    const r = await fetch(SCRIPT_URL, {method:'POST', body: JSON.stringify(Object.assign({action:'markPresent'}, payload))});
-    const j = await r.json();
-    if(j && j.status === 'ok'){
-      status.innerText = 'Marked present successfully.'; status.className='message success';
-      return true;
-    } else if(j && j.status === 'out_of_radius'){
-      status.innerText = 'You are outside the allowed radius and cannot mark present.'; status.className='message error';
-      return false;
-    } else if(j && j.status === 'closed'){
-      status.innerText = 'Session closed, meet coordinator.'; status.className='message error';
-      return false;
-    } else if(j && j.status === 'ban'){ // server requested ban
-      const banKey = `ban_${payload.sessionId}_${DEVICE_TOKEN}`;
-      localStorage.setItem(banKey,'1'); show(el('banMessage'));
-      return false;
-    } else {
-      // unknown failure
-      if(!fromQueue){ // push to queue for retry
-        payload.tries = (payload.tries||0) + 1; pushToQueue(payload); status.innerText='Saved to queue (will retry).'; status.className='message info';
+  showMsg("Verifying...","warning");
+  try {
+    const res = await fetch(`${SCRIPT_URL}?action=exportSession&sessionId=${sessionId}`);
+    const csv = await res.text();
+    const rows = csv.split("\n").map(r=>r.split(","));
+    let found=null;
+    for(let i=1;i<rows.length;i++){
+      if(rows[i][0].replace(/"/g,"")===enrollment){
+        found = {enrollment: rows[i][0], name: rows[i][1]+" "+rows[i][3], mobile: rows[i][4]};
+        break;
       }
-      return false;
     }
-  }catch(e){
-    // network error - push to queue if not already from queue
-    if(!fromQueue){ payload.tries = (payload.tries||0) + 1; pushToQueue(payload); status.innerText='Offline or network error — saved to queue.'; status.className='message info'; }
-    return false;
+    if(!found){
+      showMsg("Enrollment not found","error");
+      return;
+    }
+    document.getElementById("studentInfo").innerText = `Enrollment: ${found.enrollment}\nName: ${found.name}\nMobile: ${found.mobile}`;
+    document.getElementById("studentInfo").style.display="block";
+    document.getElementById("markBtn").style.display="block";
+    showMsg("Verified! Please mark your attendance.","success");
+  } catch(err){
+    showMsg("Error verifying: "+err,"error");
   }
 }
 
-// Mark present button
-markBtn.addEventListener('click', async ()=>{
-  if(!currentSession || !currentStudent) return alert('Verify first');
-  // get location to validate radius if session has coords
-  status.innerText = 'Getting your location...'; status.className='message info';
+async function markAttendance(){
+  const sessionId = document.getElementById("sessionId").value.trim();
+  const pin = document.getElementById("sessionPin").value.trim();
+  const enrollment = document.getElementById("enrollment").value.trim();
+
+  showMsg("Marking attendance...","warning");
+
+  // Capture location
   navigator.geolocation.getCurrentPosition(async (pos)=>{
-    const lat = pos.coords.latitude; const lng = pos.coords.longitude;
-    // check radius if provided from server
-    if(currentSession.lat && currentSession.lng && currentSession.radius){
-      const d = distanceMeters(lat,lng,currentSession.lat,currentSession.lng);
-      if(d > Number(currentSession.radius) + 5){ // 5m tolerance
-        // Outside allowed radius — still offer option? As per spec, block
-        const payload = { sessionId: el('sessionId').value.trim(), enrollment: el('enrollment').value.trim(), deviceToken: DEVICE_TOKEN, student: currentStudent, lat, lng, method: 'student' };
-        // send to server will return out_of_radius and we will show message
-        await sendMarkRequest(payload);
-        return;
+    const coords = {lat: pos.coords.latitude, lng: pos.coords.longitude};
+    try {
+      const res = await fetch(SCRIPT_URL,{
+        method:"POST",
+        body: JSON.stringify({
+          action:"markAttendance",
+          sessionId, pin, enrollment, deviceToken, coords
+        })
+      });
+      const data = await res.json();
+      if(data.status==="success"){
+        showMsg("✅ Attendance marked successfully!","success");
+        document.getElementById("markBtn").disabled=true;
+      } else if(data.status==="closed"){
+        showMsg("Session closed, meet coordinator.","error");
+      } else if(data.status==="banned"){
+        showMsg("⚠️ Device banned due to proxy attempts.","error");
+      } else if(data.status==="already_marked"){
+        showMsg("Attendance already marked.","warning");
+      } else if(data.status==="outside"){
+        showMsg("You are outside allowed location.","error");
+      } else {
+        showMsg(data.message,"error");
       }
+    } catch(err){
+      queueOffline(sessionId,pin,enrollment,coords);
     }
-
-    // If inside radius or no radius check
-    const payload = { sessionId: el('sessionId').value.trim(), enrollment: el('enrollment').value.trim(), deviceToken: DEVICE_TOKEN, student: currentStudent, lat, lng, method: 'student' };
-    const ok = await sendMarkRequest(payload);
-    if(!ok){ // either queued or failed
-      // nothing extra here
-    } else {
-      markBtn.disabled = true;
-    }
-  }, (err)=>{
-    // Could not get location — allow marking but queue with no coords
-    status.innerText = 'Location not available. Attempting to mark (will be validated by coordinator).'; status.className='message info';
-    const payload = { sessionId: el('sessionId').value.trim(), enrollment: el('enrollment').value.trim(), deviceToken: DEVICE_TOKEN, student: currentStudent, lat:null, lng:null, method: 'student' };
-    sendMarkRequest(payload);
-  }, { enableHighAccuracy:true, timeout:10000, maximumAge:0 });
-});
-
-// Manual ban tracking: if device tries >3 different enrollments in a session, ban locally & notify server
-async function trackAttemptAndMaybeBan(sessionId, enrollment){
-  const key = `attempts_${sessionId}_${DEVICE_TOKEN}`;
-  let obj = JSON.parse(localStorage.getItem(key)||'{}');
-  obj[enrollment] = (obj[enrollment]||0) + 1;
-  const distinct = Object.keys(obj).length;
-  localStorage.setItem(key, JSON.stringify(obj));
-  if(distinct > 3){
-    // mark local ban and notify server
-    localStorage.setItem(`ban_${sessionId}_${DEVICE_TOKEN}`,'1');
-    try{ await fetch(SCRIPT_URL, {method:'POST', body: JSON.stringify({action:'banDevice',sessionId,deviceToken:DEVICE_TOKEN})}); }catch(e){console.warn('Could not notify server of ban');}
-  }
+  },()=>showMsg("Location required to mark attendance.","error"));
 }
 
-// Whenever verify is attempted, track attempt
-el('verifyBtn').addEventListener('click', ()=>{ const s=el('sessionId').value.trim(); const e=el('enrollment').value.trim(); if(s&&e) trackAttemptAndMaybeBan(s,e); });
+// Offline queue handling
+function queueOffline(sessionId,pin,enrollment,coords){
+  let queue = JSON.parse(localStorage.getItem("offlineQueue")||"[]");
+  queue.push({sessionId,pin,enrollment,deviceToken,coords,retries:0});
+  localStorage.setItem("offlineQueue",JSON.stringify(queue));
+  showMsg("Internet slow, trying...","warning");
+  retryQueue();
+}
 
-// Allow manual send of queue
-el('sendQueueBtn').addEventListener('click', ()=>{ sendQueueOnce(); });
+async function retryQueue(){
+  let queue = JSON.parse(localStorage.getItem("offlineQueue")||"[]");
+  if(queue.length===0) return;
+  let newQueue=[];
+  for(const item of queue){
+    try{
+      const res = await fetch(SCRIPT_URL,{
+        method:"POST",
+        body: JSON.stringify({...item, action:"markAttendance"})
+      });
+      const data = await res.json();
+      if(data.status!=="success"){
+        item.retries++;
+        if(item.retries<3) newQueue.push(item);
+      }
+    }catch(err){
+      item.retries++;
+      if(item.retries<3) newQueue.push(item);
+    }
+  }
+  localStorage.setItem("offlineQueue",JSON.stringify(newQueue));
+  if(newQueue.length>0) setTimeout(retryQueue,5000);
+}
 
-// Initial UI updates
-updateQueueUI();
-
-// Try send queue when back online
-window.addEventListener('online', ()=>{ status.innerText='Back online. Sending pending submissions...'; status.className='message info'; sendQueueOnce(); });
-
+function showMsg(msg,type){
+  const el=document.getElementById("statusMsg");
+  el.innerText=msg;
+  el.className="message "+type;
+}
 </script>
 </body>
 </html>
