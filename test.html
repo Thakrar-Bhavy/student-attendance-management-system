@@ -124,50 +124,47 @@
     let sessionId = "";
     let pin = "";
 
-    async function verifyStudent() {
-      sessionId = document.getElementById("sessionId").value.trim();
-      pin = document.getElementById("pin").value.trim();
-      enrollmentNo = document.getElementById("enrollment").value.trim();
+async function verifyStudent() {
+  sessionId = document.getElementById("sessionId").value.trim();
+  pin = document.getElementById("pin").value.trim();
+  enrollmentNo = document.getElementById("enrollment").value.trim();
 
-      if(!sessionId || !pin || !enrollmentNo){
-        document.getElementById("verifyMessage").innerText = "⚠ Please fill all fields.";
-        return;
-      }
+  if(!sessionId || !pin || !enrollmentNo){
+    document.getElementById("verifyMessage").innerText = "⚠ Please fill all fields.";
+    return;
+  }
 
-      try {
-        const res = await fetch(API_URL, {
-          method: "POST",
-          body: JSON.stringify({
-            action: "markAttendance",
-            sessionId: sessionId,
-            pin: pin,
-            enrollment: enrollmentNo,
-            deviceToken: localStorage.getItem("deviceToken") || (localStorage.setItem("deviceToken", crypto.randomUUID()), localStorage.getItem("deviceToken")),
-            coords: null
-          })
-        });
-        const data = await res.json();
-        
-        if(data.status === "success" || data.status === "already_marked"){
-          studentVerified = true;
-          document.getElementById("verifySection").classList.add("hidden");
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "markAttendance",
+        sessionId: sessionId,
+        pin: pin,
+        enrollment: enrollmentNo,
+        deviceToken: localStorage.getItem("deviceToken") || (localStorage.setItem("deviceToken", crypto.randomUUID()), localStorage.getItem("deviceToken")),
+        coords: null
+      })
+    });
+    const data = await res.json();
+    
+    if(data.status === "success" || data.status === "already_marked"){
+      studentVerified = true;
+      document.getElementById("verifySection").classList.add("hidden");
 
-          // Only show name & phone on first attempt
-          if(data.status === "success"){
-            document.getElementById("studentName").innerText = "✅ Verified: " + enrollmentNo;
-            document.getElementById("studentPhone").innerText = "Mobile: [Hidden for security]";
-          } else {
-            document.getElementById("studentName").innerText = "⚠ Already Marked";
-            document.getElementById("studentPhone").innerText = "";
-          }
-          document.getElementById("studentDetails").classList.remove("hidden");
-        } else {
-          document.getElementById("verifyMessage").innerText = "❌ " + data.message;
-        }
-      } catch(err) {
-        document.getElementById("verifyMessage").innerText = "Error verifying. Please retry.";
-      }
+      // ✅ Always show name & phone
+      document.getElementById("studentName").innerText = "✅ Enrollment: " + enrollmentNo;
+      document.getElementById("studentPhone").innerText = "Mobile: " + (data.mobile || "Not Available");
+
+      document.getElementById("studentDetails").classList.remove("hidden");
+    } else {
+      document.getElementById("verifyMessage").innerText = "❌ " + data.message;
     }
+  } catch(err) {
+    document.getElementById("verifyMessage").innerText = "Error verifying. Please retry.";
+  }
+}
+
 
     async function markPresent() {
       document.getElementById("markMessage").innerText = "⏳ Marking attendance...";
