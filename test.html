@@ -2,194 +2,525 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Student Attendance</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    body {
-      font-family: 'Inter', sans-serif;
+    :root {
+      --primary: #4361ee;
+      --secondary: #3a0ca3;
+      --accent: #4cc9f0;
+      --success: #4ade80;
+      --warning: #facc15;
+      --error: #f87171;
+      --background: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --text-light: #64748b;
+      --border: #e2e8f0;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
       margin: 0;
       padding: 0;
-      background: linear-gradient(135deg, #6A11CB, #2575FC);
-      color: #fff;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--background);
+      margin: 0;
+      padding: 20px;
       display: flex;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
+      color: var(--text);
     }
-    .container {
-      background: #fff;
-      color: #333;
-      width: 95%;
-      max-width: 420px;
+
+    .card {
+      background: var(--card-bg);
       padding: 24px;
-      border-radius: 16px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      width: 100%;
+      max-width: 420px;
       text-align: center;
-      animation: fadeIn 0.5s ease-in-out;
+      position: relative;
+      overflow: hidden;
     }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 6px;
+      background: linear-gradient(to right, var(--primary), var(--accent));
+    }
+
+    .logo {
+      margin-bottom: 10px;
+      color: var(--primary);
+      font-size: 2.5rem;
+    }
+
     h2 {
-      margin-bottom: 16px;
-      color: #2575FC;
+      color: var(--primary);
+      margin-bottom: 20px;
+      font-weight: 700;
+      font-size: 1.8rem;
     }
+
+    .input-group {
+      position: relative;
+      margin-bottom: 20px;
+      text-align: left;
+    }
+
+    .input-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+      color: var(--text);
+      font-size: 0.9rem;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 15px;
+      top: 40px;
+      color: var(--primary);
+      font-size: 1.1rem;
+    }
+
     input {
       width: 100%;
-      padding: 12px;
-      margin: 8px 0;
-      border: 1px solid #ddd;
-      border-radius: 8px;
+      padding: 14px 14px 14px 45px;
+      border-radius: 12px;
+      border: 2px solid var(--border);
       font-size: 16px;
+      transition: all 0.3s ease;
+      background: #f8fafc;
     }
+
+    input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+    }
+
     button {
       width: 100%;
-      padding: 12px;
-      margin-top: 12px;
+      padding: 16px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 12px;
       font-size: 16px;
       font-weight: 600;
-      border: none;
-      border-radius: 8px;
+      background: var(--primary);
+      color: white;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px rgba(67, 97, 238, 0.2);
     }
-    .btn-primary {
-      background: #2575FC;
-      color: #fff;
+
+    button:hover {
+      background: var(--secondary);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(67, 97, 238, 0.25);
     }
-    .btn-primary:hover {
-      background: #1a5edb;
+
+    button:active {
+      transform: translateY(0);
     }
-    .btn-success {
-      background: #28a745;
-      color: #fff;
+
+    .hidden { 
+      display: none; 
     }
-    .btn-success:hover {
-      background: #218838;
-    }
-    .hidden { display: none; }
+
     .message {
-      margin-top: 12px;
-      font-size: 15px;
+      margin-top: 20px;
+      padding: 12px;
+      border-radius: 10px;
+      font-weight: 500;
+      font-size: 14px;
+      text-align: center;
     }
-    @keyframes fadeIn {
-      from {opacity: 0; transform: translateY(10px);}
-      to {opacity: 1; transform: translateY(0);}
+
+    .success {
+      background-color: rgba(76, 222, 128, 0.15);
+      color: #16a34a;
+      border: 1px solid rgba(76, 222, 128, 0.3);
+    }
+
+    .error {
+      background-color: rgba(248, 113, 113, 0.15);
+      color: #dc2626;
+      border: 1px solid rgba(248, 113, 113, 0.3);
+    }
+
+    .info {
+      background-color: rgba(76, 201, 240, 0.15);
+      color: var(--primary);
+      border: 1px solid rgba(76, 201, 240, 0.3);
+    }
+
+    .student-info {
+      background: #f1f5f9;
+      padding: 16px;
+      border-radius: 12px;
+      margin: 20px 0;
+      text-align: left;
+    }
+
+    .student-info p {
+      margin: 8px 0;
+      color: var(--text);
+    }
+
+    .student-info strong {
+      color: var(--text-light);
+      margin-right: 8px;
+    }
+
+    .loader {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 10px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .step-indicator {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 25px;
+    }
+
+    .step {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--border);
+      margin: 0 5px;
+    }
+
+    .step.active {
+      background: var(--primary);
+      transform: scale(1.3);
+    }
+
+    .location-permission {
+      margin-top: 15px;
+      font-size: 0.8rem;
+      color: var(--text-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .location-permission i {
+      margin-right: 5px;
+      color: var(--primary);
+    }
+
+    @media (max-width: 480px) {
+      .card {
+        padding: 20px;
+      }
+      
+      h2 {
+        font-size: 1.5rem;
+      }
+      
+      input, button {
+        padding: 12px 12px 12px 40px;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>📌 Student Attendance</h2>
-    
-    <!-- Step 1: Verify -->
-    <div id="verifySection">
-      <input type="text" id="sessionId" placeholder="Enter Session ID">
-      <input type="text" id="pin" placeholder="Enter Session PIN">
-      <input type="text" id="enrollment" placeholder="Enter Enrollment No">
-      <button class="btn-primary" onclick="verifyStudent()">Verify</button>
-      <p class="message" id="verifyMessage"></p>
+  <div class="card">
+    <div class="step-indicator">
+      <div class="step active" id="step1"></div>
+      <div class="step" id="step2"></div>
     </div>
     
-    <!-- Step 2: Show Details -->
-    <div id="studentDetails" class="hidden">
-      <h3 id="studentName"></h3>
-      <p id="studentPhone"></p>
-      <button class="btn-success" onclick="markPresent()">Mark Present ✅</button>
-      <p class="message" id="markMessage"></p>
+    <div class="logo">
+      <i class="fas fa-user-graduate"></i>
+    </div>
+    <h2>Mark Attendance</h2>
+    
+    <!-- Step 1: Input -->
+    <div id="verifyForm">
+      <div class="input-group">
+        <label for="sessionId">Session ID</label>
+        <i class="input-icon fas fa-calendar-alt"></i>
+        <input type="text" id="sessionId" placeholder="Enter session ID">
+      </div>
+      
+      <div class="input-group">
+        <label for="sessionPin">Session PIN</label>
+        <i class="input-icon fas fa-lock"></i>
+        <input type="password" id="sessionPin" placeholder="Enter session PIN">
+      </div>
+      
+      <div class="input-group">
+        <label for="enrollment">Enrollment No</label>
+        <i class="input-icon fas fa-id-card"></i>
+        <input type="text" id="enrollment" placeholder="Enter enrollment number">
+      </div>
+      
+      <button onclick="verifyStudent()">
+        <i class="fas fa-check-circle"></i> Verify Details
+      </button>
+      
+      <div class="location-permission">
+        <i class="fas fa-info-circle"></i> Location access required for attendance
+      </div>
+    </div>
+
+    <!-- Step 2: Confirmation -->
+    <div id="confirmBox" class="hidden">
+      <div class="student-info">
+        <p><strong>Enrollment:</strong> <span id="confirmEnrollment"></span></p>
+        <p><strong>Name:</strong> <span id="confirmName"></span></p>
+        <p><strong>Mobile:</strong> <span id="confirmMobile"></span></p>
+      </div>
+      
+      <button onclick="markPresent()">
+        <i class="fas fa-check"></i> Confirm Attendance
+      </button>
+      
+      <button onclick="goBack()" style="background: var(--text-light); margin-top: 8px;">
+        <i class="fas fa-arrow-left"></i> Go Back
+      </button>
+    </div>
+
+    <p id="status" class="message"></p>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.9); display: flex; justify-content: center; align-items: center; z-index: 1000;">
+    <div style="text-align: center; background: white; padding: 30px; border-radius: 16px; box-shadow: var(--shadow);">
+      <div style="font-size: 3rem; color: var(--primary); margin-bottom: 15px;">
+        <i class="fas fa-spinner fa-spin"></i>
+      </div>
+      <h3 id="loadingText">Processing...</h3>
     </div>
   </div>
 
-  <script>
-    // 📌 Block laptops & desktops
+<script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyb_JsC7JEuyo51f2jTVrFSNEJhzGldkjNZRKbUaBOkDGYu56-qKW9z0XH8c8xAtTek/exec";
+    let deviceToken = localStorage.getItem("deviceToken");
+    if(!deviceToken){
+      deviceToken = "dev_" + Math.random().toString(36).substr(2,9);
+      localStorage.setItem("deviceToken", deviceToken);
+    }
+
+    let cachedStudent = null;
+
+    // Show loading overlay
+    function showLoader(text = "Processing...") {
+      document.getElementById('loadingText').textContent = text;
+      document.getElementById('loadingOverlay').classList.remove('hidden');
+    }
+
+    // Hide loading overlay
+    function hideLoader() {
+      document.getElementById('loadingOverlay').classList.add('hidden');
+    }
+
+    // Update step indicator
+    function updateStepIndicator(step) {
+      document.getElementById('step1').classList.toggle('active', step === 1);
+      document.getElementById('step2').classList.toggle('active', step === 2);
+    }
+
+    // Go back to verification form
+    function goBack() {
+      document.getElementById("verifyForm").classList.remove("hidden");
+      document.getElementById("confirmBox").classList.add("hidden");
+      updateStepIndicator(1);
+      showMsg("", "");
+    }
+
+    // Step 1: Verify enrollment
+    async function verifyStudent(){
+      const sessionId = document.getElementById("sessionId").value.trim();
+      const pin = document.getElementById("sessionPin").value.trim();
+      const enrollment = document.getElementById("enrollment").value.trim();
+      
+      if(!sessionId || !pin || !enrollment){ 
+        return showMsg("Please fill all fields","error"); 
+      }
+
+      showLoader("Verifying your details...");
+      
+      try {
+        const res = await fetch(`${SCRIPT_URL}?action=exportSession&sessionId=${sessionId}`);
+        const csv = await res.text();
+        const rows = csv.split("\n").map(r=>r.split(","));
+        const student = rows.find(r=>r[0].replace(/"/g,"") === enrollment);
+        
+        if(!student) {
+          hideLoader();
+          return showMsg("Enrollment not found in this session","error");
+        }
+
+        cachedStudent = { 
+          sessionId, 
+          pin, 
+          enrollment, 
+          name: student[1] + " " + student[3], 
+          mobile: student[4] 
+        };
+        
+        // Update confirmation box
+        document.getElementById("confirmEnrollment").textContent = cachedStudent.enrollment;
+        document.getElementById("confirmName").textContent = cachedStudent.name;
+        document.getElementById("confirmMobile").textContent = cachedStudent.mobile;
+        
+        // Switch to confirmation view
+        document.getElementById("verifyForm").classList.add("hidden");
+        document.getElementById("confirmBox").classList.remove("hidden");
+        updateStepIndicator(2);
+        
+        hideLoader();
+        showMsg("Verified! Confirm to mark present", "success");
+      } catch(e){
+        hideLoader();
+        showMsg("Error verifying: " + e.message, "error");
+      }
+    }
+
+    // Step 2: Mark Present
+    async function markPresent(){
+      if(!cachedStudent) return;
+      
+      showLoader("Marking your attendance...");
+      showMsg("", "");
+      
+      try {
+        const coords = await getLocation();
+        const res = await fetch(SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            action: "markAttendance",
+            sessionId: cachedStudent.sessionId,
+            enrollment: cachedStudent.enrollment,
+            pin: cachedStudent.pin,
+            deviceToken,
+            coords
+          })
+        });
+        
+        const data = await res.json();
+        hideLoader();
+        
+        if(data.status === "success") {
+          showMsg("✅ Attendance marked successfully!", "success");
+        } else if(data.status === "already_marked") {
+          showMsg("You've already marked attendance for this session", "error");
+        } else if(data.status === "closed") {
+          showMsg("Session is closed. Please meet your coordinator", "error");
+        } else if(data.status === "outside") {
+          showMsg("You're outside the allowed location for this session", "error");
+        } else if(data.status === "banned") {
+          showMsg("This device is restricted due to policy violation", "error");
+        } else {
+          showMsg(data.message || "An error occurred", "error");
+        }
+      } catch(e){
+        hideLoader();
+        showMsg("Connection issue, retrying...", "error");
+        retryMark(3); // retry 3 times
+      }
+    }
+
+    // Retry logic
+    async function retryMark(times){
+      if(times <= 0) return showMsg("Failed after multiple attempts", "error");
+      
+      showLoader(`Retrying... (${4-times}/3)`);
+      try { 
+        await markPresent(); 
+      } catch { 
+        setTimeout(() => retryMark(times-1), 2000); 
+      }
+    }
+
+    // Get geolocation
+    function getLocation(){
+      return new Promise((resolve, reject) => {
+        if(!navigator.geolocation) return resolve(null);
+        
+        navigator.geolocation.getCurrentPosition(
+          pos => resolve({lat: pos.coords.latitude, lng: pos.coords.longitude}),
+          err => {
+            showMsg("Location access is required for attendance", "error");
+            resolve(null);
+          },
+          {enableHighAccuracy: true, timeout: 10000, maximumAge: 0}
+        );
+      });
+    }
+
+    // Show messages
+    function showMsg(msg, type){
+      const el = document.getElementById("status");
+      el.textContent = msg;
+      el.className = "message " + (type || "");
+    }
+
+    // 🔒 Block laptops & desktops
     function blockNonMobile() {
       const ua = navigator.userAgent.toLowerCase();
       const isMobile = /android|iphone|ipad|ipod|opera mini|iemobile|wpdesktop|mobile/i.test(ua);
+
       if (!isMobile) {
         document.body.innerHTML = `
           <div style="display:flex;justify-content:center;align-items:center;height:100vh;text-align:center;font-family:sans-serif;padding:20px;">
-            <div>
-              <h2>⚠ Mobile Only</h2>
-              Please scan the QR code and open it on your phone.
+            <div style="max-width:400px;">
+              <div style="font-size:4rem; color: #4361ee; margin-bottom:20px;">
+                <i class="fas fa-mobile-alt"></i>
+              </div>
+              <h2 style="color:#334155; margin-bottom:15px;">⚠ Mobile Only</h2>
+              <p style="color:#64748b; line-height:1.6;">
+                This attendance portal works only on mobile devices.<br>
+                Please scan the QR code and open it on your phone.
+              </p>
             </div>
           </div>`;
       }
     }
+
+    // Run on load
     blockNonMobile();
-
-    // 🌍 Backend URL
-    const API_URL = "https://script.google.com/macros/s/AKfycbyb_JsC7JEuyo51f2jTVrFSNEJhzGldkjNZRKbUaBOkDGYu56-qKW9z0XH8c8xAtTek/exec"; // replace with your deployed Apps Script Web App URL
-
-    // Local state
-    let enrollmentNo = "";
-    let sessionId = "";
-    let pin = "";
-
-    async function verifyStudent() {
-      sessionId = document.getElementById("sessionId").value.trim();
-      pin = document.getElementById("pin").value.trim();
-      enrollmentNo = document.getElementById("enrollment").value.trim();
-
-      if(!sessionId || !pin || !enrollmentNo){
-        document.getElementById("verifyMessage").innerText = "⚠ Please fill all fields.";
-        return;
-      }
-
-      // 🌍 Get location
-      if (!navigator.geolocation) {
-        document.getElementById("verifyMessage").innerText = "⚠ GPS not supported.";
-        return;
-      }
-
-      document.getElementById("verifyMessage").innerText = "⏳ Getting your location...";
-
-      navigator.geolocation.getCurrentPosition(async (position) => {
-        const coords = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        };
-
-        try {
-          const res = await fetch(API_URL, {
-            method: "POST",
-            body: JSON.stringify({
-              action: "markAttendance",
-              sessionId: sessionId,
-              pin: pin,
-              enrollment: enrollmentNo,
-              deviceToken: localStorage.getItem("deviceToken") || (localStorage.setItem("deviceToken", crypto.randomUUID()), localStorage.getItem("deviceToken")),
-              coords: coords
-            })
-          });
-          const data = await res.json();
-
-          if(data.status === "success" || data.status === "already_marked"){
-            document.getElementById("verifySection").classList.add("hidden");
-            document.getElementById("studentName").innerText = "✅ Enrollment: " + enrollmentNo;
-            document.getElementById("studentPhone").innerText = "Mobile: " + (data.mobile || "Not Available");
-            document.getElementById("studentDetails").classList.remove("hidden");
-          } 
-          else if (data.status === "outside") {
-            document.getElementById("verifyMessage").innerText = "❌ You are outside the session location.";
-          }
-          else if (data.status === "closed") {
-            document.getElementById("verifyMessage").innerText = "❌ Session closed. Meet coordinator.";
-          }
-          else if (data.status === "banned") {
-            document.getElementById("verifyMessage").innerText = "🚫 Device blocked. Proxy attempt detected.";
-          }
-          else {
-            document.getElementById("verifyMessage").innerText = "❌ " + data.message;
-          }
-        } catch(err) {
-          document.getElementById("verifyMessage").innerText = "⚠ Error verifying. Check internet and retry.";
-        }
-      }, (error) => {
-        document.getElementById("verifyMessage").innerText = "⚠ Location required. Please allow GPS.";
-      }, { enableHighAccuracy: true, timeout: 10000 });
-    }
-
-    function markPresent() {
-      document.getElementById("markMessage").innerText = "✅ Attendance recorded.";
-    }
-  </script>
+    
+    // Add input event listeners for better UX
+    document.addEventListener('DOMContentLoaded', function() {
+      const inputs = document.querySelectorAll('input');
+      inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+          this.parentElement.classList.add('focused');
+        });
+        input.addEventListener('blur', function() {
+          this.parentElement.classList.remove('focused');
+        });
+      });
+    });
+</script>
 </body>
 </html>
