@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
+    /* Your existing CSS remains the same */
     * {
       box-sizing: border-box;
       margin: 0;
@@ -210,20 +211,20 @@
     <div id="verifyForm">
       <div class="input-group">
         <i class="fas fa-id-card input-icon"></i>
-        <input type="text" id="sessionId" placeholder="Session ID">
+        <input type="text" id="sessionId" placeholder="Session ID" required>
       </div>
       
       <div class="input-group">
         <i class="fas fa-lock input-icon"></i>
-        <input type="password" id="sessionPin" placeholder="Session PIN">
+        <input type="password" id="sessionPin" placeholder="Session PIN" required>
       </div>
       
       <div class="input-group">
         <i class="fas fa-envelope input-icon"></i>
-        <input type="text" id="enrollment" placeholder="Enrollment No">
+        <input type="text" id="enrollment" placeholder="Enrollment No" required>
       </div>
       
-      <button onclick="verifyStudent()">
+      <button onclick="verifyStudent()" id="verifyBtn">
         <i class="fas fa-check-circle"></i> Verify Details
       </button>
     </div>
@@ -235,7 +236,7 @@
         <p id="studentInfo"></p>
       </div>
       
-      <button class="confirm-button" onclick="markPresent()">
+      <button class="confirm-button" onclick="markPresent()" id="markBtn">
         <i class="fas fa-user-check"></i> ✅ Mark Present
       </button>
       
@@ -248,17 +249,18 @@
   </div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyb_JsC7JEuyo51f2jTVrFSNEJhzGldkjNZRKbUaBOkDGYu56-qKW9z0XH8c8xAtTek/exec";
+    // Replace with your actual Apps Script URL
+    const SCRIPT_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
     
     let deviceToken = localStorage.getItem("deviceToken");
     if(!deviceToken){
-      deviceToken = "dev_" + Math.random().toString(36).substr(2,9);
+      deviceToken = "dev_" + Math.random().toString(36).substr(2,9) + "_" + Date.now();
       localStorage.setItem("deviceToken", deviceToken);
     }
 
     let cachedStudent = null;
 
-    // Step 1: Verify enrollment
+    // Step 1: Verify student and session
     async function verifyStudent(){
       const sessionId = document.getElementById("sessionId").value.trim();
       const pin = document.getElementById("sessionPin").value.trim();
@@ -268,79 +270,114 @@
         return showMsg("Please fill all fields","error"); 
       }
 
-      showMsg("Verifying your details...", "info");
+      showMsg("Verifying session and student details...", "info");
+      disableButton('verifyBtn', true);
       
       try {
-        const res = await fetch(`${SCRIPT_URL}?action=exportSession&sessionId=${sessionId}`);
-        const csv = await res.text();
-        const rows = csv.split("\n").map(r=>r.split(","));
-        const student = rows.find(r=>r[0].replace(/"/g,"") === enrollment);
+        // First verify session PIN
+        const sessionRes = await fetch(`${SCRIPT_URL}?action=verifySession&sessionId=${sessionId}&pin=${pin}`);
+        const sessionData = await sessionRes.json();
         
-        if(!student) return showMsg("Enrollment not found in this session","error");
+        if (!sessionData.valid) {
+          disableButton('verifyBtn', false);
+          return showMsg("Invalid session ID or PIN", "error");
+        }
+
+        // Then verify student enrollment in master data
+        const studentRes = await fetch(`${SCRIPT_URL}?path=/master/lookup&enrollment=${enrollment}`);
+        const studentData = await studentRes.json();
+        
+        if (studentData.error) {
+          disableButton('verifyBtn', false);
+          return showMsg("Enrollment not found in master data", "error");
+        }
 
         cachedStudent = { 
           sessionId, 
           pin, 
-          enrollment, 
-          name: student[1] + " " + student[3], 
-          mobile: student[4] 
+          enrollment,
+          name: `${studentData.student.firstName} ${studentData.student.middleName} ${studentData.student.lastName}`.trim(),
+          mobile: studentData.student.mobile,
+          degree: studentData.student.degree
         };
         
         document.getElementById("studentInfo").innerHTML = `
           <strong>Name:</strong> ${cachedStudent.name}<br>
           <strong>Enrollment:</strong> ${cachedStudent.enrollment}<br>
-          <strong>Mobile:</strong> ${cachedStudent.mobile}
+          <strong>Mobile:</strong> ${cachedStudent.mobile}<br>
+          <strong>Degree:</strong> ${cachedStudent.degree}
         `;
         
         document.getElementById("verifyForm").classList.add("hidden");
         document.getElementById("confirmBox").classList.remove("hidden");
         showMsg("Verification successful! Confirm to mark attendance", "success");
+        
       } catch(e){
-        showMsg("Error verifying: " + e.message, "error");
+        showMsg("Network error: " + e.message, "error");
+        disableButton('verifyBtn', false);
       }
     }
 
     // Step 2: Mark Present
     async function markPresent(){
       if(!cachedStudent) return;
+      
       showMsg("Marking attendance...", "info");
-
+      disableButton('markBtn', true);
+      
       try {
         const coords = await getLocation();
         const res = await fetch(SCRIPT_URL, {
           method: "POST",
+          headers: {
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify({
             action: "markAttendance",
             sessionId: cachedStudent.sessionId,
             enrollment: cachedStudent.enrollment,
             pin: cachedStudent.pin,
-            deviceToken,
-            coords
+            deviceToken: deviceToken,
+            coords: coords
           })
         });
         
         const data = await res.json();
+        
         if(data.status === "success") {
           showMsg("✅ Attendance marked successfully!", "success");
+          // Auto-redirect after 3 seconds
+          setTimeout(() => {
+            document.getElementById("verifyForm").classList.remove("hidden");
+            document.getElementById("confirmBox").classList.add("hidden");
+            clearForm();
+            showMsg("Attendance recorded successfully!", "success");
+          }, 3000);
         }
         else if(data.status === "already_marked") {
           showMsg("Attendance already marked for this session", "error");
+          disableButton('markBtn', false);
         }
         else if(data.status === "closed") {
           showMsg("Session closed, please meet coordinator", "error");
+          disableButton('markBtn', false);
         }
         else if(data.status === "outside") {
           showMsg("You're outside the allowed location", "error");
+          disableButton('markBtn', false);
         }
         else if(data.status === "banned") {
           showMsg("Device banned for multiple attempts", "error");
+          disableButton('markBtn', false);
         }
         else {
-          showMsg(data.message, "error");
+          showMsg(data.message || "Unknown error occurred", "error");
+          disableButton('markBtn', false);
         }
       } catch(e){
         showMsg("Slow connection, retrying...", "error");
-        retryMark(3); // retry 3 times
+        disableButton('markBtn', false);
+        await retryMark(3); // retry 3 times
       }
     }
 
@@ -349,28 +386,61 @@
       document.getElementById("verifyForm").classList.remove("hidden");
       document.getElementById("confirmBox").classList.add("hidden");
       showMsg("", "");
+      disableButton('verifyBtn', false);
     }
 
-    // Retry logic
+    // Clear form fields
+    function clearForm() {
+      document.getElementById("sessionId").value = "";
+      document.getElementById("sessionPin").value = "";
+      document.getElementById("enrollment").value = "";
+      cachedStudent = null;
+    }
+
+    // Retry logic with better error handling
     async function retryMark(times){
-      if(times <= 0) return showMsg("Failed after multiple attempts", "error");
+      if(times <= 0) {
+        showMsg("Failed after multiple attempts. Please try again.", "error");
+        return;
+      }
+      
       try { 
         await markPresent(); 
       }
-      catch { 
-        setTimeout(() => retryMark(times - 1), 2000); 
+      catch(e) { 
+        console.log(`Retry attempt ${4-times} failed:`, e);
+        if(times > 1) {
+          setTimeout(() => retryMark(times - 1), 2000);
+        }
       }
     }
 
-    // Get geolocation
+    // Get geolocation with better error handling
     function getLocation(){
-      return new Promise((resolve, reject) => {
-        if(!navigator.geolocation) return resolve(null);
+      return new Promise((resolve) => {
+        if(!navigator.geolocation) {
+          console.log("Geolocation not supported");
+          resolve(null);
+          return;
+        }
         
         navigator.geolocation.getCurrentPosition(
-          pos => resolve({lat: pos.coords.latitude, lng: pos.coords.longitude}),
-          () => resolve(null),
-          {enableHighAccuracy: true, timeout: 8000, maximumAge: 0}
+          pos => {
+            resolve({
+              lat: pos.coords.latitude, 
+              lng: pos.coords.longitude,
+              accuracy: pos.coords.accuracy
+            });
+          },
+          (error) => {
+            console.log("Geolocation error:", error);
+            resolve(null);
+          },
+          {
+            enableHighAccuracy: true, 
+            timeout: 10000, 
+            maximumAge: 0
+          }
         );
       });
     }
@@ -380,33 +450,45 @@
       const el = document.getElementById("status");
       el.innerText = msg;
       el.className = "message " + (type || "");
+      el.style.display = msg ? "block" : "none";
     }
 
-    // 🔒 Block laptops & desktops
-    function blockNonMobile() {
-      const ua = navigator.userAgent.toLowerCase();
-      const isMobile = /android|iphone|ipad|ipod|opera mini|iemobile|wpdesktop|mobile/i.test(ua);
-
-      if (!isMobile) {
-        document.body.innerHTML = `
-          <div style="display:flex;justify-content:center;align-items:center;height:100vh;text-align:center;font-family:sans-serif;background:linear-gradient(135deg, #6e8efb, #a777e3);color:white;">
-            <div style="background:rgba(255,255,255,0.95);padding:30px;border-radius:20px;color:#333;box-shadow:0 10px 30px rgba(0,0,0,0.2);max-width:90%;width:400px;">
-              <div style="font-size:48px;color:#6e8efb;margin-bottom:15px;">
-                <i class="fas fa-mobile-alt"></i>
-              </div>
-              <h2 style="margin-bottom:15px;">⚠ Mobile Only</h2>
-              <p style="line-height:1.6;">This attendance portal works only on mobile devices.<br>
-              Please scan the QR code and open it on your phone.</p>
-            </div>
-          </div>`;
+    // Disable/enable buttons during processing
+    function disableButton(btnId, disabled) {
+      const btn = document.getElementById(btnId);
+      if (btn) {
+        btn.disabled = disabled;
+        btn.innerHTML = disabled ? 
+          '<div class="loading"></div> Processing...' : 
+          btn.innerHTML.replace('<div class="loading"></div> Processing...', '<i class="fas fa-check-circle"></i> Verify Details');
       }
     }
 
-    // Run on load
-   // blockNonMobile();
+    // Input validation
+    document.addEventListener('DOMContentLoaded', function() {
+      const inputs = document.querySelectorAll('input[required]');
+      inputs.forEach(input => {
+        input.addEventListener('input', function() {
+          if (this.value.trim()) {
+            this.style.borderColor = '#48bb78';
+          } else {
+            this.style.borderColor = '#e2e8f0';
+          }
+        });
+      });
+    });
+
+    // Enter key support
+    document.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        if (!document.getElementById('confirmBox').classList.contains('hidden')) {
+          markPresent();
+        } else {
+          verifyStudent();
+        }
+      }
+    });
+
   </script>
-  
-  <!-- Include Font Awesome for icons -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
 </body>
 </html>
