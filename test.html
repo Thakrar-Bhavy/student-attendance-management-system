@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Live Barcode Scanner</title>
 
 <style>
@@ -10,13 +9,13 @@
         margin: 0;
         padding: 0;
         box-sizing: border-box;
+        font-family: Arial, sans-serif;
     }
 
     body, html {
         width: 100%;
         height: 100%;
         overflow: hidden;
-        font-family: Arial, sans-serif;
         background: black;
     }
 
@@ -27,45 +26,43 @@
         left: 0;
         width: 100vw;
         height: 100vh;
+        z-index: 1;
     }
 
-    /* Bottom white line */
-    .bottom-line {
-        position: fixed;
-        bottom: 70px;
-        left: 10%;
-        width: 80%;
-        height: 3px;
-        background: white;
-        border-radius: 10px;
-        z-index: 10;
-    }
-
-    /* Barcode text */
-    .barcode-output {
+    /* Bottom result box */
+    #resultBox {
         position: fixed;
         bottom: 20px;
-        width: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: white;
+        padding: 12px 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 10;
+        min-width: 220px;
         text-align: center;
+    }
+
+    #resultBox span {
+        color: green;
         font-size: 22px;
         font-weight: bold;
-        color: #00ff4c;
-        z-index: 10;
+        letter-spacing: 1px;
     }
 </style>
 </head>
-
 <body>
 
+<!-- Full screen scanner -->
 <div id="scanner"></div>
 
-<div class="bottom-line"></div>
-
-<div class="barcode-output">
-    <span id="barcodeText">Waiting for scan...</span>
+<!-- Bottom barcode text -->
+<div id="resultBox">
+    <span id="barcodeText">Scan barcode...</span>
 </div>
 
-<!-- ❗ KEEP THIS SCRIPT EXACTLY SAME -->
+<!-- ❌ DO NOT MODIFY THIS CODE -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 
 <script>
