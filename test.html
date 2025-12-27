@@ -2,50 +2,70 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Simple Barcode Scanner</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Barcode Scanner</title>
 
 <style>
-    body {
-        font-family: Arial, sans-serif;
-        background: #f4f4f4;
-        text-align: center;
-        padding: 20px;
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
     }
 
-    h2 {
-        margin-bottom: 10px;
-    }
-
-    #scanner {
+    body, html {
         width: 100%;
-        max-width: 400px;
-        height: 300px;
-        margin: auto;
-        border: 2px solid #333;
-        border-radius: 10px;
+        height: 100%;
         overflow: hidden;
+        font-family: Arial, sans-serif;
+        background: black;
     }
 
-    #result {
-        margin-top: 15px;
-        font-size: 18px;
+    /* Full screen camera */
+    #scanner {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+    }
+
+    /* Bottom white line */
+    .bottom-line {
+        position: fixed;
+        bottom: 70px;
+        left: 10%;
+        width: 80%;
+        height: 3px;
+        background: white;
+        border-radius: 10px;
+        z-index: 10;
+    }
+
+    /* Barcode text */
+    .barcode-output {
+        position: fixed;
+        bottom: 20px;
+        width: 100%;
+        text-align: center;
+        font-size: 22px;
         font-weight: bold;
-        color: green;
-        background: #fff;
-        padding: 10px;
-        border-radius: 5px;
+        color: #00ff4c;
+        z-index: 10;
     }
 </style>
 </head>
-<body>
 
-<h2>📷 Barcode Scanner</h2>
+<body>
 
 <div id="scanner"></div>
 
-<div id="result">Scanned Code: <span id="barcodeText">---</span></div>
+<div class="bottom-line"></div>
 
-<!-- QuaggaJS CDN -->
+<div class="barcode-output">
+    <span id="barcodeText">Waiting for scan...</span>
+</div>
+
+<!-- ❗ KEEP THIS SCRIPT EXACTLY SAME -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 
 <script>
@@ -55,7 +75,7 @@
             type: "LiveStream",
             target: document.querySelector('#scanner'),
             constraints: {
-                facingMode: "environment" // back camera
+                facingMode: "environment"
             }
         },
         decoder: {
@@ -78,8 +98,6 @@
     Quagga.onDetected(function (data) {
         let code = data.codeResult.code;
         document.getElementById("barcodeText").innerText = code;
-
-        
     });
 </script>
 
