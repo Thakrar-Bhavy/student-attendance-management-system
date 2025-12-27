@@ -1,3 +1,7 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
 <title>Simple Barcode Scanner</title>
 
 <style>
@@ -34,3 +38,50 @@
 </style>
 </head>
 <body>
+
+<h2>📷 Barcode Scanner</h2>
+
+<div id="scanner"></div>
+
+<div id="result">Scanned Code: <span id="barcodeText">---</span></div>
+
+<!-- QuaggaJS CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+
+<script>
+    Quagga.init({
+        inputStream: {
+            name: "Live",
+            type: "LiveStream",
+            target: document.querySelector('#scanner'),
+            constraints: {
+                facingMode: "environment" // back camera
+            }
+        },
+        decoder: {
+            readers: [
+                "code_128_reader",
+                "ean_reader",
+                "ean_8_reader",
+                "upc_reader",
+                "upc_e_reader"
+            ]
+        }
+    }, function (err) {
+        if (err) {
+            console.log(err);
+            return;
+        }
+        Quagga.start();
+    });
+
+    Quagga.onDetected(function (data) {
+        let code = data.codeResult.code;
+        document.getElementById("barcodeText").innerText = code;
+
+        
+    });
+</script>
+
+</body>
+</html>
