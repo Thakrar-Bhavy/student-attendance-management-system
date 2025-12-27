@@ -2,82 +2,90 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
 <title>Mobile Barcode Scanner</title>
 
 <style>
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
+/* RESET */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
-    body {
-        font-family: Arial, sans-serif;
-        background: black;
-        height: 100vh;
-        overflow: hidden;
-    }
+/* FULL SCREEN CAMERA */
+html, body {
+    width: 100%;
+    height: 100%;
+    background: black;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+}
 
-    /* Full screen camera */
-    #scanner {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        z-index: 1;
-    }
+/* CAMERA VIEW */
+#scanner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    z-index: 1;
+}
 
-    /* Bottom result box */
-    #resultBox {
-        position: fixed;
-        bottom: 15px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 90%;
-        background: white;
-        border-radius: 12px;
-        padding: 14px;
-        text-align: center;
-        z-index: 10;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    }
+/* BOTTOM RESULT BOX */
+#resultBox {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 360px;
+    background: white;
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+    z-index: 2;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
 
-    #resultBox label {
-        font-size: 14px;
-        color: #555;
-        display: block;
-        margin-bottom: 5px;
-    }
+/* LABEL */
+#resultBox span {
+    font-size: 20px;
+    font-weight: bold;
+    color: #1fae4b; /* green */
+    letter-spacing: 1px;
+}
 
-    #barcodeText {
-        font-size: 22px;
-        font-weight: bold;
-        color: green;
-        letter-spacing: 1px;
-    }
-
-    /* Hide Quagga debug UI */
-    canvas, video {
-        max-width: 100%;
-        max-height: 100%;
-    }
+/* OPTIONAL CAMERA GUIDE */
+#guide {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 80%;
+    height: 120px;
+    transform: translate(-50%, -50%);
+    border: 2px dashed rgba(255,255,255,0.7);
+    border-radius: 10px;
+    z-index: 2;
+}
 </style>
 </head>
 <body>
 
-<!-- Camera -->
+<!-- CAMERA -->
 <div id="scanner"></div>
 
-<!-- Bottom barcode display -->
+<!-- OPTIONAL SCAN GUIDE -->
+<div id="guide"></div>
+
+<!-- RESULT -->
 <div id="resultBox">
-    <label>Scanned Barcode</label>
-    <div id="barcodeText">---</div>
+    <span id="barcodeText">Scan Barcode</span>
 </div>
 
-<!-- ❗ LOCKED CODE (NOT MODIFIED) -->
+<!-- ❗ YOUR CODE — NOT MODIFIED ❗ -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 
 <script>
@@ -87,7 +95,7 @@
             type: "LiveStream",
             target: document.querySelector('#scanner'),
             constraints: {
-                facingMode: "environment"
+                facingMode: "environment" // back camera
             }
         },
         decoder: {
